@@ -1,8 +1,8 @@
 #include "usefultools.h"
 #include <cctype>
 #include <cwctype>
-///char to unsigned char cast definition
-#define ctus(c) static_cast<unsigned char>(c)
+
+#define ctus(c) static_cast<unsigned char>(c) /*char to unsigned char cast definition*/
 
 void UFT::skip_ws(size_t &it, std::string &s){
     while(isspace(ctus(s[it]))){
@@ -39,7 +39,7 @@ bool UFT::safe_isspace(char c){
 */
 bool UFT::is_ws_relevant_char(char sc){
     std::string arith_ops = "+-/!&|<>";
-    char c = ctus(sc);
+    unsigned char c = ctus(sc);
     
     for(auto op: arith_ops){
         if(c==op){

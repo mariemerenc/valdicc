@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cwctype>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 
 
@@ -17,18 +18,18 @@ std::string Preprocessor::preprocess_input(std::fstream &filestream){
     std::string file = transform_fstream_into_string(filestream);
     
     size_t file_iterator = 0;
-    UFT::skip_ws(file_iterator, file);
     bool prev_was_punct = false;
     bool prev_was_ws_semantic=false;
     bool changed = false;
+    UFT::skip_ws(file_iterator, file);
     while(file_iterator < file.size()){
         if(UFT::safe_isalnum(file[file_iterator])){
             if(!prev_was_punct && changed){
                 output_string += " ";
             }
-            changed = true;
             UFT::bulk_add_alpha_num(file_iterator, file, output_string);
             prev_was_punct = false;
+            prev_was_ws_semantic = false;
         }
         else if(UFT::safe_ispunct(file[file_iterator])){
             if(prev_was_ws_semantic){
@@ -46,6 +47,7 @@ std::string Preprocessor::preprocess_input(std::fstream &filestream){
         else if(UFT::safe_isspace(file[file_iterator])){
             UFT::skip_ws(file_iterator, file);
         }
+        changed = true;
     }
     return output_string;
 }
