@@ -33,10 +33,6 @@ bool UFT::safe_ispunct(char c){
 bool UFT::safe_isspace(char c){
     return std::isspace(ctus(c)) != 0;
 }
-/**
-    Returns true if the whitespace is semantically relevant for the operator
-    FAQ: Whitespaces are not semantically relevant for *
-*/
 bool UFT::is_ws_relevant_char(char sc){
     std::string arith_ops = "+-/!&|<>";
     unsigned char c = ctus(sc);

@@ -3,5 +3,5 @@
 int main(){
     int a;
     int *b;
-    std::cout < < "op";
+    std::cout << "op";
 }

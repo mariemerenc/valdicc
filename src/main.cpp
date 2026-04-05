@@ -2,7 +2,17 @@
 #include <iostream>
 #include <CLI/CLI.hpp>
 
-
+/**
+ * @brief Parses command-line arguments.
+ * 
+ * Uses the CLI11 library to configure and validate the options passed by
+ * the user in the terminal, setting the required input file and optional output file.
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line argument strings.
+ * @param cli_app Reference to the CLI11 application object. 
+ * @param run_opts Structure where the validated options will be stored.
+ * @return int Returns 0 on success, or 1 in case of a parsing error.
+ */
 int parse_argv(int argc, char** argv, CLI::App &cli_app, RunningOptions &run_opts){
     std::string input_filename = "";
     std::string preprocessor_output_filename = "";
@@ -28,6 +38,15 @@ int parse_argv(int argc, char** argv, CLI::App &cli_app, RunningOptions &run_opt
     return 0;
 }
 
+/**
+ * @brief Entry point for the VCC compiler
+ * 
+ * Initializes the configuration structures, parses the command-line arguments,
+ * and delegates execution to the Core class.
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line argument strings.
+ * @return int Returns 0 upon successfull execution, or 1 in case of errors.
+ */
 int main(int argc, char** argv){
     RunningOptions run_opts = RunningOptions();
     CLI::App cli_app("Compiler commandline parser", "vcc");
