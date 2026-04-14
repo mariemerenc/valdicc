@@ -5,7 +5,7 @@
 #define ctus(c) static_cast<unsigned char>(c) /*char to unsigned char cast definition*/
 
 void UFT::skip_ws(size_t &it, std::string &s){
-    while(isspace(ctus(s[it]))){
+    while(isspace(ctus(s[it])) && it < s.size() && s[it] != '\n'){
         it++;
     }
 }
