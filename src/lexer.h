@@ -46,7 +46,11 @@ class Lexer{
 
     public:
     /** @brief Lexer constructor.*/
-    Lexer(const std::string& preprocessor_output): current_column{1}, current_line{1} {source_code = preprocessor_output;};
+    Lexer(const std::string& preprocessor_output) {
+        current_column = 1; 
+        current_line = 1;
+        source_code = preprocessor_output;
+    };
 
     /**
      * @brief Main method that scans the source code and generates a stream of tokens.
