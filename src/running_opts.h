@@ -17,4 +17,10 @@ struct RunningOptions{
     
     /** @brief Flag indicating whether the preprocessor output should be exported to a file.*/
     bool preprocessor_output = false;
+
+    /** @brief Path to the file where the Lexer output will be saved.*/
+    std::string lexer_output_file_path = "";
+    
+    /** @brief Flag indicating whether the Lexer output should be exported to a file.*/
+    bool lexer_output = false;
 };

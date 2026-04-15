@@ -42,6 +42,7 @@ enum class TokenType {
     OP_ASSIGN,      ///< '=' operator
     OP_AND,         ///< '&&' operator
     OP_GREATER,     ///< '>' operator
+    OP_LESS,        ///< '<' operator
     OP_PLUS,        ///< '+' operator
     OP_MINUS,       ///< '-' operator
     OP_ASTERISK,    ///< '*' operator
@@ -106,5 +107,69 @@ const unordered_map<string, TokenType> KeywordMap = {
     {"false", TokenType::KW_FALSE},
     {"this", TokenType::KW_THIS}
 };
+
+const unordered_map<string, TokenType> SymbolMap = {
+    {"=", TokenType::OP_ASSIGN},
+    {"&&", TokenType::OP_AND},
+    {">", TokenType::OP_GREATER},
+    {"<", TokenType::OP_LESS},
+    {"+", TokenType::OP_PLUS},
+    {"-", TokenType::OP_MINUS},
+    {"*", TokenType::OP_ASTERISK},
+    {"!", TokenType::OP_NOT},
+    {"{", TokenType::PUNC_LBRACE},
+    {"}", TokenType::PUNC_RBRACE},
+    {"(", TokenType::PUNC_LPARENT},
+    {")", TokenType::PUNC_RPARENT},
+    {"[", TokenType::PUNC_LBRACKET},
+    {"]", TokenType::PUNC_RBRACKET},
+    {";", TokenType::PUNC_SEMICOLON},
+    {",", TokenType::PUNC_COMMA},
+    {".", TokenType::PUNC_DOT},
+};
+
+inline std::string to_string(TokenType type) {
+    switch (type) {
+        case TokenType::KW_CLASS: return "KW_CLASS";
+        case TokenType::KW_PUBLIC: return "KW_PUBLIC";
+        case TokenType::KW_STATIC: return "KW_STATIC";
+        case TokenType::KW_VOID: return "KW_VOID";
+        case TokenType::KW_MAIN: return "KW_MAIN";
+        case TokenType::KW_STRING: return "KW_STRING";
+        case TokenType::KW_RETURN: return "KW_RETURN";
+        case TokenType::KW_INT: return "KW_INT";
+        case TokenType::KW_BOOLEAN: return "KW_BOOLEAN";
+        case TokenType::KW_IF: return "KW_IF";
+        case TokenType::KW_ELSE: return "KW_ELSE";
+        case TokenType::KW_WHILE: return "KW_WHILE";
+        case TokenType::KW_SYSTEM: return "KW_SYSTEM";
+        case TokenType::KW_OUT: return "KW_OUT";
+        case TokenType::KW_PRINTLN: return "KW_PRINTLN";
+        case TokenType::KW_LENGTH: return "KW_LENGTH";
+        case TokenType::KW_NEW: return "KW_NEW";
+        case TokenType::KW_TRUE: return "KW_TRUE";
+        case TokenType::KW_FALSE: return "KW_FALSE";
+        case TokenType::KW_THIS: return "KW_THIS";
+        case TokenType::IDENTIFIER: return "IDENTIFIER";
+        case TokenType::NUMBER_LITERAL: return "NUMBER_LITERAL";
+        case TokenType::OP_ASSIGN: return "OP_ASSIGN";
+        case TokenType::OP_AND: return "OP_AND";
+        case TokenType::OP_GREATER: return "OP_GREATER";
+        case TokenType::OP_PLUS: return "OP_PLUS";
+        case TokenType::OP_MINUS: return "OP_MINUS";
+        case TokenType::OP_ASTERISK: return "OP_ASTERISK";
+        case TokenType::OP_NOT: return "OP_NOT";
+        case TokenType::PUNC_LBRACE: return "PUNC_LBRACE";
+        case TokenType::PUNC_RBRACE: return "PUNC_RBRACE";
+        case TokenType::PUNC_LPARENT: return "PUNC_LPARENT";
+        case TokenType::PUNC_RPARENT: return "PUNC_RPARENT";
+        case TokenType::PUNC_LBRACKET: return "PUNC_LBRACKET";
+        case TokenType::PUNC_RBRACKET: return "PUNC_RBRACKET";
+        case TokenType::PUNC_SEMICOLON: return "PUNC_SEMICOLON";
+        case TokenType::PUNC_COMMA: return "PUNC_COMMA";
+        case TokenType::PUNC_DOT: return "PUNC_DOT";
+        default: return "UNKNOWN";
+    }
+}
 
 #endif

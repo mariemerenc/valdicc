@@ -1,3 +1,2 @@
-## Remove comments
-
-Code comment removal hasn't been implemented
+## Implement Levenshtein Distance
+## Refactor error handling method
