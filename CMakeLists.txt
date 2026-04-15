@@ -14,6 +14,8 @@ FetchContent_MakeAvailable(CLI11)
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
+set(CMAKE_CXX_FLAGS "-Wall -pedantic")
+
 add_executable(vcc ${SOURCES})
 
 target_compile_features(vcc PRIVATE cxx_std_20)
