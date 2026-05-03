@@ -1,4 +1,4 @@
-#include "lexer.h"
+#include "headers/lexer.h"
 #include <regex>
 #include <iostream>
 using namespace std;
