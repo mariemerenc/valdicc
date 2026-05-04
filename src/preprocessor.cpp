@@ -1,5 +1,5 @@
-#include "headers/preprocessor.h"
-#include "headers/usefultools.h"
+#include "../headers/preprocessor.h"
+#include "../headers/usefultools.h"
 #include <cctype>
 #include <cwctype>
 #include <fstream>
