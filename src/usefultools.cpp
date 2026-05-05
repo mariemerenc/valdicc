@@ -1,4 +1,5 @@
-#include "usefultools.h"
+#include "../headers/usefultools.h"
+#include <vector>
 #include <cctype>
 #include <cwctype>
 
@@ -43,4 +44,37 @@ bool UFT::is_ws_relevant_char(char sc){
         }
     }
     return false;
+}
+int UFT::levenshtein_distance(const std::string& a, const std::string& b){
+    int size_a = a.size();
+    int size_b = b.size();
+    std::vector<std::vector<int>> verif(size_a + 1, std::vector<int>(size_b + 1));
+
+    if(size_a == 0)
+        return size_b;
+
+    if(size_b == 0)
+        return size_a;
+
+    for (int i = 0; i <= size_a; i++)
+        verif[i][0] = i;
+    for (int j = 0; j <= size_b; j++)
+        verif[0][j] = j;
+
+    for(int ii = 1; ii <= size_a; ii++){
+        for(int jj = 1; jj <= size_b; jj++){
+            int substitionCost;
+            if(a[ii-1] == b[jj-1]){
+                substitionCost = 0;
+            }else{
+                substitionCost = 1;
+            }
+
+            verif[ii][jj] = std::min(std::min(verif[ii-1][jj] + 1, 
+                                              verif[ii][jj-1] + 1), 
+                                    verif[ii-1][jj-1] + substitionCost);
+        }
+    }
+    
+    return verif[size_a][size_b];
 }

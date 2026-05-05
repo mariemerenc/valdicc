@@ -1,4 +1,5 @@
-#include "core.h"
+#include "../headers/core.h"
+#include "../headers/running_opts.h"
 #include <iostream>
 #include <CLI/CLI.hpp>
 

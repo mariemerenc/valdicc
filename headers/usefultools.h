@@ -66,4 +66,14 @@ namespace UFT{
      * @param output String where the minified result is being built. 
      */
     void bulk_add_punct(size_t &it, std::string &input, std::string &output);
+
+    /**
+     * @brief Calculates the Levenshtein Distance.
+     * 
+     * Calculates the Levenshtein Distance - a string metric for measuring the 
+     * difference between two sequences - for two given strings.
+     * @param a First string to be used.
+     * @param b Second string to be used.
+     */
+    int levenshtein_distance(const std::string& a, const std::string& b);
 }

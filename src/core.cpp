@@ -1,6 +1,6 @@
-#include "core.h"
-#include "preprocessor.h"
-#include "lexer.h"
+#include "../headers/core.h"
+#include "../headers/preprocessor.h"
+#include "../headers/lexer.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
