@@ -33,6 +33,7 @@ enum class TokenType {
     KW_TRUE,        ///< 'true' keyword
     KW_FALSE,       ///< 'false keyword
     KW_THIS,        ///< 'this' keyword
+    KW_EXTENDS,     ///< 'extends' keyword
 
     //identifier or number literal
     IDENTIFIER,     ///< variable/method names
@@ -60,6 +61,7 @@ enum class TokenType {
     PUNC_DOT,       ///< '.' dot
 
     //control
+    END_OF_FILE,     ///< EOF
     ERROR_UNKNOWN,  ///< unrecognized sequence of characters
 };
 
@@ -105,7 +107,8 @@ const unordered_map<string, TokenType> KeywordMap = {
     {"new", TokenType::KW_NEW},
     {"true", TokenType::KW_TRUE},
     {"false", TokenType::KW_FALSE},
-    {"this", TokenType::KW_THIS}
+    {"this", TokenType::KW_THIS},
+    {"extends", TokenType::KW_EXTENDS}
 };
 
 const unordered_map<string, TokenType> SymbolMap = {
@@ -150,6 +153,7 @@ inline std::string to_string(TokenType type) {
         case TokenType::KW_TRUE: return "KW_TRUE";
         case TokenType::KW_FALSE: return "KW_FALSE";
         case TokenType::KW_THIS: return "KW_THIS";
+        case TokenType::KW_EXTENDS: return "KW_EXTENDS";
         case TokenType::IDENTIFIER: return "IDENTIFIER";
         case TokenType::NUMBER_LITERAL: return "NUMBER_LITERAL";
         case TokenType::OP_ASSIGN: return "OP_ASSIGN";
@@ -168,6 +172,7 @@ inline std::string to_string(TokenType type) {
         case TokenType::PUNC_SEMICOLON: return "PUNC_SEMICOLON";
         case TokenType::PUNC_COMMA: return "PUNC_COMMA";
         case TokenType::PUNC_DOT: return "PUNC_DOT";
+        case TokenType::END_OF_FILE: return "END_OF_FILE";
         default: return "UNKNOWN";
     }
 }
