@@ -19,7 +19,8 @@ class Parser{
     size_t lookahead = 0; // o indice q aponta para qual token estamos olhando
 
     Token peek(); // uma olhada pro token seguinte sem avançar o indice
-    void match(TokenType expected_type); // verificaçao do tipo de token esperado
+    Token previous();
+    void match(TokenType expected_type, const std::string& custom_msg = ""); // verificaçao do tipo de token esperado
     void throw_error(const std::string& msg); // a funçao principal de erro ! as mensagens variam
 
     void parse_Prog();
