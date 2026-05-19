@@ -4,6 +4,14 @@
 
 using namespace std;
 
+//inicializa o parser
+
+Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) {
+    tokens = tokenss;
+    symbol_table = symbol_tablee;
+}
+
+
 //retorna token atual
 Token Parser::peek(){
     if(lookahead >= tokens.size()){
@@ -120,4 +128,65 @@ void Parser::parse_DefCl_prime(){
         match(TokenType::PUNC_RBRACE);
         parse_DefCl();
     }
+}
+
+void Parser::parse_DefVar() {
+    if (peek().type == TokenType::KW_INT) {
+        match(TokenType::KW_INT);
+        if (peek().type == TokenType::PUNC_LBRACE) { // eh um array kinda; preciso fazer outra produção pra isso sera?
+            match(TokenType::PUNC_LBRACE);
+            match(TokenType::PUNC_RBRACE);
+        }
+        // aq eu matcho o id mas eh um lexema ja
+        //match();
+        match(TokenType::PUNC_SEMICOLON);
+    }
+
+    else if (peek().type == TokenType::KW_BOOLEAN) {
+        match(TokenType::KW_BOOLEAN);
+    }
+
+    else if (false /*peek().type == TokenType::lexeme*/) { // SO COLOQUEI PRA NAO DAR ERRO, PRECISO REVER THIS
+        
+
+    }
+
+    else {
+        // lambda production!
+        return;
+    }
+
+    // so mt genial papo reto
+    // so retorna se nao matchou nenhum dos firsts entao se chegou ate aq eh porq produziu algo
+    // PARSES ID
+    // BY THAT I DO MEAN RECOGNIZES LEXEME
+    match(TokenType::PUNC_SEMICOLON);
+    parse_DefVar();
+}
+
+void Parser::parse_DefMet() {
+    if (peek().type == TokenType::KW_PUBLIC) {
+        match(TokenType::KW_PUBLIC);
+        parse_Type();
+        //parse_id();
+        match(TokenType::PUNC_LPARENT);
+
+        // cant i just do this??
+
+        if (peek().type != TokenType::PUNC_RPARENT) {
+            parse_Args();
+        }
+        match(TokenType::PUNC_RPARENT);
+        match(TokenType::PUNC_LBRACE);
+        parse_DefVar();
+        parse_Cmd();
+        match(TokenType::KW_RETURN);
+        parse_Exp();
+        match(TokenType::PUNC_SEMICOLON);
+        match(TokenType::PUNC_RBRACE);
+        parse_DefMet();
+
+    }
+
+    // else eh uma producao lambda
 }

@@ -9,7 +9,7 @@
 
 class Parser{
     public:
-    Parser(const std::vector<Token>& tokens, SymbolTable& symbol_table); 
+    Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee); 
 
     void parse(); // começa pela regra Prog. eh tipo o pontape inicial
 
