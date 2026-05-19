@@ -2,13 +2,17 @@
 #include "../headers/usefultools.h"
 #include <stdexcept>
 
+// NOTAS: LEMBRAR DE
+// SEMPRE USAR O ELSE IF, SE NAO NAO EH EXCLUSIVO E FODE COM O PARSER
+// PARENTHESIS = ()
+// BRACKETS = []
+// BRACES = {}
+
 using namespace std;
 
 //inicializa o parser
 
-Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) {
-    tokens = tokenss;
-    symbol_table = symbol_tablee;
+Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) : tokens{tokenss}, symbol_table{symbol_tablee} {
 }
 
 
@@ -138,7 +142,7 @@ void Parser::parse_DefVar() {
             match(TokenType::PUNC_RBRACE);
         }
         // aq eu matcho o id mas eh um lexema ja
-        //match();
+        match(TokenType::IDENTIFIER);
         match(TokenType::PUNC_SEMICOLON);
     }
 
@@ -146,9 +150,8 @@ void Parser::parse_DefVar() {
         match(TokenType::KW_BOOLEAN);
     }
 
-    else if (false /*peek().type == TokenType::lexeme*/) { // SO COLOQUEI PRA NAO DAR ERRO, PRECISO REVER THIS
-        
-
+    else if (peek().type == TokenType::IDENTIFIER) { // SO COLOQUEI PRA NAO DAR ERRO, PRECISO REVER THIS
+        match(TokenType::IDENTIFIER);
     }
 
     else {
@@ -160,6 +163,9 @@ void Parser::parse_DefVar() {
     // so retorna se nao matchou nenhum dos firsts entao se chegou ate aq eh porq produziu algo
     // PARSES ID
     // BY THAT I DO MEAN RECOGNIZES LEXEME
+    // note: isso me parece fake....... em que mundo podemos ter identifier depois de identifier?
+
+    match(TokenType::IDENTIFIER);
     match(TokenType::PUNC_SEMICOLON);
     parse_DefVar();
 }
@@ -168,25 +174,153 @@ void Parser::parse_DefMet() {
     if (peek().type == TokenType::KW_PUBLIC) {
         match(TokenType::KW_PUBLIC);
         parse_Type();
-        //parse_id();
+        match(TokenType::IDENTIFIER);
         match(TokenType::PUNC_LPARENT);
-
-        // cant i just do this??
-
-        if (peek().type != TokenType::PUNC_RPARENT) {
-            parse_Args();
-        }
-        match(TokenType::PUNC_RPARENT);
-        match(TokenType::PUNC_LBRACE);
-        parse_DefVar();
-        parse_Cmd();
-        match(TokenType::KW_RETURN);
-        parse_Exp();
-        match(TokenType::PUNC_SEMICOLON);
-        match(TokenType::PUNC_RBRACE);
-        parse_DefMet();
+        parse_DefMet_prime();
 
     }
 
     // else eh uma producao lambda
 }
+
+void Parser::parse_DefMet_prime() {
+
+    if (peek().type != TokenType::PUNC_RPARENT) { // tem algo antes do ) -> argumentos!
+        parse_Args();
+    }
+
+    match(TokenType::PUNC_RPARENT);
+    match(TokenType::PUNC_LBRACE);
+    parse_DefVar();
+    parse_Cmd();
+    match(TokenType::KW_RETURN);
+    parse_Exp();
+    match(TokenType::PUNC_SEMICOLON);
+    match(TokenType::PUNC_RBRACE);
+    parse_DefMet();
+}
+
+void Parser::parse_Type() {
+
+    if (peek().type == TokenType::KW_INT) {
+        match(TokenType::KW_INT);
+        parse_Type_prime();
+    }
+
+    else if (peek().type == TokenType::KW_BOOLEAN) {
+        match(TokenType::KW_BOOLEAN);
+    }
+
+    else {
+        match(TokenType::IDENTIFIER);
+    }
+}
+
+void Parser::parse_Type_prime() {
+
+    if (peek().type == TokenType::PUNC_RBRACKET) {
+        match(TokenType::PUNC_RBRACKET);
+        match(TokenType::PUNC_LBRACKET);
+    }
+    
+    // else eh lambda
+}
+
+
+void Parser::parse_Args() {
+    parse_Type();
+    // o parse id eh equivalente a identificar um lexema / identifier
+    match(TokenType::IDENTIFIER);
+    parse_Args_prime();
+}
+
+void Parser::parse_Args_prime(){
+    if (peek().type == TokenType::PUNC_COMMA) {
+        match(TokenType::PUNC_COMMA);
+        parse_Args();
+    }
+    // lambda production
+}
+
+
+void Parser::parse_Cmd() {
+    if (peek().type == TokenType::PUNC_LBRACE) {
+        match(TokenType::PUNC_LBRACE);
+        parse_Cmd();
+        match(TokenType::PUNC_RBRACE);
+    }
+    else if (peek().type == TokenType::KW_IF) {
+        match(TokenType::KW_IF);
+        match(TokenType::PUNC_LPARENT);
+        parse_Exp();
+        match(TokenType::PUNC_RPARENT);
+        parse_Cmd();
+        match(TokenType::KW_ELSE);
+        parse_Cmd();
+    }
+    else if (peek().type == TokenType::KW_WHILE) {
+        match(TokenType::KW_WHILE);
+        match(TokenType::PUNC_LPARENT);
+        parse_Exp();
+        match(TokenType::PUNC_RPARENT);
+        parse_Cmd();
+    }
+    else if (peek().type == TokenType::KW_SYSTEM) {
+        match(TokenType::KW_SYSTEM);
+        match(TokenType::PUNC_DOT);
+        match(TokenType::KW_OUT);
+        match(TokenType::PUNC_DOT);
+        match(TokenType::KW_PRINTLN);
+        match(TokenType::PUNC_LPARENT);
+        parse_Exp();
+        match(TokenType::PUNC_RPARENT);
+        match(TokenType::PUNC_SEMICOLON);
+    }
+    else { // precisa ser um id
+        match(TokenType::IDENTIFIER);
+        parse_Cmd_prime();
+    }
+}
+
+void Parser::parse_Cmd_prime() {
+
+    if (peek().type == TokenType::OP_ASSIGN) {
+        match(TokenType::OP_ASSIGN);
+    }
+
+    else {
+        match(TokenType::PUNC_LBRACKET);
+        parse_Exp();
+        match(TokenType::PUNC_RBRACKET);
+    }
+
+    parse_Exp();
+    match(TokenType::PUNC_SEMICOLON);
+
+}
+
+// TO DO!
+void Parser::parse_Exp() {
+    // skeete vai fazer a parte de precedencia de operadores
+}
+
+void Parser::parse_ListExp() {
+    if (false /*FAZER ISSO AQQQ*/) { // depende de exp!
+
+    }
+
+    // else eh lambda
+}
+
+
+void Parser::parse_ListExp_prime() {
+    if (peek().type == TokenType::PUNC_COMMA) {
+        match(TokenType::PUNC_COMMA);
+        parse_ListExp();
+    }
+
+    // aq eh lambda
+}
+
+
+
