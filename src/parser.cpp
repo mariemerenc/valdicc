@@ -299,13 +299,13 @@ void Parser::parse_Cmd_prime() {
 
 }
 
-// TO DO!
-void Parser::parse_Exp() {
+// implementação original sem precedência de operadores!
+/*void Parser::parse_Exp_og() {
     // skeete vai fazer a parte de precedencia de operadores
 }
 
 void Parser::parse_ListExp() {
-    if (false /*FAZER ISSO AQQQ*/) { // depende de exp!
+    if (false /*FAZER ISSO AQQQ) { // depende de exp!
 
     }
 
@@ -320,6 +320,82 @@ void Parser::parse_ListExp_prime() {
     }
 
     // aq eh lambda
+}*/
+
+void Parser::parse_Exp() {
+    parse_AssignExp();
+}
+
+void Parser::parse_AssignExp(){
+
+}
+
+
+void Parser::parse_BoolExp() {
+    parse_ComparisonExp();
+
+    if (peek().type == TokenType::OP_AND) {
+        match(TokenType::OP_AND);
+    }
+
+    // se nao, eh so o comparison
+}
+
+
+
+void Parser::parse_ComparisonExp(){
+    parse_AddExp();
+    
+    if (peek().type == TokenType::OP_GREATER) {
+        match(TokenType::OP_GREATER);
+        parse_ComparisonExp();
+    }
+
+    // else eh lambda
+}
+
+void Parser::parse_AddExp(){
+    parse_MulExp();
+
+    if (peek().type == TokenType::OP_PLUS) {
+        //
+    }
+}
+
+void Parser::parse_MulExp(){
+
+}
+
+void Parser::parse_PrimaryExpression(){
+
+}
+
+void Parser::parse_IndexExp(){
+
+}
+
+void Parser::parse_ArrayInit(){
+
+}
+
+void Parser::parse_LiteralList(){
+
+}
+
+void Parser::parse_Literal(){ // idk what this is, eh um lexema of some sort?
+
+}
+
+void Parser::parse_MemberExp(){
+
+}
+
+void Parser::parse_FuncCall(){
+
+}
+
+void Parser::parse_ExpList(){
+
 }
 
 

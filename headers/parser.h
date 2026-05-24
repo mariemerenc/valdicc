@@ -44,9 +44,25 @@ class Parser{
     void parse_Cmd();
     void parse_Cmd_prime();
 
+    void parse_Exp_og(); // parsa sem PEMDAS par caso não conseguimos implementar por completo a tempo
+
     void parse_Exp();
-    void parse_Exp_prime();
-    void parse_Dot_prime();
+    void parse_AssignExp();
+    void parse_BoolExp();
+    void parse_ComparisonExp();
+    void parse_AddExp();
+    void parse_MulExp();
+    void parse_PrimaryExpression();
+    void parse_IndexExp();
+    void parse_ArrayInit();
+    void parse_LiteralList();
+    void parse_Literal(); // idk what this is, eh um lexema of some sort?
+    void parse_MemberExp();
+    void parse_FuncCall();
+    void parse_ExpList();
+    
+    //void parse_Exp_prime();
+    //void parse_Dot_prime();
 
     void parse_ListExp();
     void parse_ListExp_prime();
