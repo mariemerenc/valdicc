@@ -1,6 +1,8 @@
 #include "../headers/core.h"
 #include "../headers/preprocessor.h"
 #include "../headers/lexer.h"
+#include "../headers/parser.h"
+#include "../headers/symbol_table.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -29,5 +31,15 @@ void Core::run(){
             }
             lexer_outfile.close();
         }
+    }
+
+    SymbolTable table; //ta vazia
+    Parser parser(tokens, table);
+
+    try{
+        parser.parse();
+    }
+    catch(const exception& e){
+        cerr << "falhou :(\n[ERRO] " << e.what() << '\n';
     }
 }

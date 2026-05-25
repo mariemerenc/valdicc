@@ -19,6 +19,7 @@ class Parser{
     size_t lookahead = 0; // o indice q aponta para qual token estamos olhando
 
     Token peek(); // uma olhada pro token seguinte sem avançar o indice
+    Token peek_next(); //uma olhada pra 2 tokens da frente sem avançar o indice
     Token previous();
     void match(TokenType expected_type, const std::string& custom_msg = ""); // verificaçao do tipo de token esperado
     void throw_error(const std::string& msg); // a funçao principal de erro ! as mensagens variam
@@ -44,6 +45,7 @@ class Parser{
     void parse_Cmd();
     void parse_Cmd_prime();
 
+    bool is_exp_tail(TokenType type);
     void parse_Exp_og(); // parsa sem PEMDAS par caso não conseguimos implementar por completo a tempo
 
     void parse_Exp();

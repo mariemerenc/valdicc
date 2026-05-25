@@ -10,7 +10,7 @@ class SymbolTable{
     std::unordered_map<std::string, Symbol> symbol_table; // a tabela de simbolos. eh um mapa em que chave = nome do simbolo, valor = simbolo
 
     public:
-    SymbolTable();
+    SymbolTable() {};
 
     bool insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column); // bool pq vai retornar false se por exemplo uma mesma variavel for declarada duas vezes no mesmo escopo 
 

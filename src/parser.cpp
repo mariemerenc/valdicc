@@ -16,12 +16,19 @@ Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) : 
 }
 
 
-//retorna token atual
 Token Parser::peek(){
     if(lookahead >= tokens.size()){
         return tokens.back();
     }
     return tokens[lookahead];
+}
+
+//isso aq foi necessario na hora de verificar se temos alguma declaraçao do tipo Id Id como vc tinha mencionado @carol parser
+Token Parser::peek_next(){
+    if(lookahead+1 >= tokens.size()){
+        return tokens.back();
+    }
+    return tokens[lookahead+1];
 }
 
 //sempre q chamamos o match() ele avança o lookahead :/ ent na hora de inserir na tabela de simbolos se o match fosse bem sucedido, ele nao teria acesso ao token atual, sempre o seguinte. esse previous() eh basicamente pra retornar o anterior pos match (ou seja, o "atual" ...?) 
@@ -70,7 +77,7 @@ void Parser::match(TokenType expected_type, const string& custom_msg){
 void Parser::parse(){
     parse_Prog();
 
-    if(peek().type != TokenType::END_OF_FILE){
+    if(lookahead < tokens.size() && peek().type != TokenType::END_OF_FILE){
         throw_error("MENSAGEM DE ERRO avisando q tem token dps do fim do arquivo");
     }
 }
@@ -107,104 +114,71 @@ void Parser::parse_MainC(){
 }
 
 void Parser::parse_DefCl(){
-    if(peek().type == TokenType::KW_CLASS){
+    while(peek().type == TokenType::KW_CLASS){
         match(TokenType::KW_CLASS);
         match(TokenType::IDENTIFIER, "cade o nome da classe");
-        parse_DefCl_prime();
-    }
-    //se nao começar com class eh lambda
-}
 
-void Parser::parse_DefCl_prime(){
-    if(peek().type == TokenType::PUNC_LBRACE){
+        if(peek().type == TokenType::KW_EXTENDS){
+            match(TokenType::KW_EXTENDS);
+            match(TokenType::IDENTIFIER, "cade o nome da classe dps de 'extends'");
+        }
+
         match(TokenType::PUNC_LBRACE);
         parse_DefVar();
         parse_DefMet();
         match(TokenType::PUNC_RBRACE);
-        parse_DefCl();
-    }
-    else if(peek().type == TokenType::KW_EXTENDS){
-        match(TokenType::KW_EXTENDS);
-        match(TokenType::IDENTIFIER, "cade o nome da classe dps de 'extends'");
-        match(TokenType::PUNC_LBRACE);
-        parse_DefVar();
-        parse_DefMet();
-        match(TokenType::PUNC_RBRACE);
-        parse_DefCl();
     }
 }
 
 void Parser::parse_DefVar() {
-    if (peek().type == TokenType::KW_INT) {
-        match(TokenType::KW_INT);
-        if (peek().type == TokenType::PUNC_LBRACE) { // eh um array kinda; preciso fazer outra produção pra isso sera?
-            match(TokenType::PUNC_LBRACE);
-            match(TokenType::PUNC_RBRACE);
-        }
-        // aq eu matcho o id mas eh um lexema ja
+    //verificaçao do tipo aqui !!! PERCEBA QUE NA ULTIMA LINHA estamos vendo se temos Id Id 
+    while ( peek().type == TokenType::KW_INT ||
+            peek().type == TokenType::KW_BOOLEAN ||
+            (peek().type == TokenType::IDENTIFIER && peek_next().type == TokenType::IDENTIFIER)){
+        parse_Type();
         match(TokenType::IDENTIFIER);
         match(TokenType::PUNC_SEMICOLON);
     }
 
-    else if (peek().type == TokenType::KW_BOOLEAN) {
-        match(TokenType::KW_BOOLEAN);
-    }
-
-    else if (peek().type == TokenType::IDENTIFIER) { // SO COLOQUEI PRA NAO DAR ERRO, PRECISO REVER THIS
-        match(TokenType::IDENTIFIER);
-    }
-
-    else {
-        // lambda production!
-        return;
-    }
-
-    // so mt genial papo reto
-    // so retorna se nao matchou nenhum dos firsts entao se chegou ate aq eh porq produziu algo
-    // PARSES ID
-    // BY THAT I DO MEAN RECOGNIZES LEXEME
-    // note: isso me parece fake....... em que mundo podemos ter identifier depois de identifier?
-
-    match(TokenType::IDENTIFIER);
-    match(TokenType::PUNC_SEMICOLON);
-    parse_DefVar();
+    //note de carol: isso me parece fake....... em que mundo podemos ter identifier depois de identifier? 
+    /*
+    note de mari: podemos ter id dps de id! por ex.: Classe objeto; 
+    o problema era ... 
+    */
 }
 
 void Parser::parse_DefMet() {
-    if (peek().type == TokenType::KW_PUBLIC) {
+    while(peek().type == TokenType::KW_PUBLIC){
         match(TokenType::KW_PUBLIC);
         parse_Type();
         match(TokenType::IDENTIFIER);
         match(TokenType::PUNC_LPARENT);
-        parse_DefMet_prime();
 
+        if(peek().type != TokenType::PUNC_RPARENT){ // tenho um feeling q isso pode quebrar a analise
+            parse_Args();
+        }
+
+        match(TokenType::PUNC_RPARENT);
+        match(TokenType::PUNC_LBRACE);
+        parse_DefVar();
+        while(peek().type != TokenType::KW_RETURN){
+            parse_Cmd();
+        }
+        match(TokenType::KW_RETURN);
+        parse_Exp_og();
+        match(TokenType::PUNC_SEMICOLON);
+        match(TokenType::PUNC_RBRACE);
     }
-
-    // else eh uma producao lambda
-}
-
-void Parser::parse_DefMet_prime() {
-
-    if (peek().type != TokenType::PUNC_RPARENT) { // tem algo antes do ) -> argumentos!
-        parse_Args();
-    }
-
-    match(TokenType::PUNC_RPARENT);
-    match(TokenType::PUNC_LBRACE);
-    parse_DefVar();
-    parse_Cmd();
-    match(TokenType::KW_RETURN);
-    parse_Exp();
-    match(TokenType::PUNC_SEMICOLON);
-    match(TokenType::PUNC_RBRACE);
-    parse_DefMet();
 }
 
 void Parser::parse_Type() {
-
     if (peek().type == TokenType::KW_INT) {
         match(TokenType::KW_INT);
-        parse_Type_prime();
+
+        if (peek().type == TokenType::PUNC_LBRACKET) {
+            match(TokenType::PUNC_LBRACKET);
+            match(TokenType::PUNC_RBRACKET);
+        }
     }
 
     else if (peek().type == TokenType::KW_BOOLEAN) {
@@ -215,44 +189,31 @@ void Parser::parse_Type() {
         match(TokenType::IDENTIFIER);
     }
 }
-
-void Parser::parse_Type_prime() {
-
-    if (peek().type == TokenType::PUNC_RBRACKET) {
-        match(TokenType::PUNC_RBRACKET);
-        match(TokenType::PUNC_LBRACKET);
-    }
-    
-    // else eh lambda
-}
-
 
 void Parser::parse_Args() {
     parse_Type();
     // o parse id eh equivalente a identificar um lexema / identifier
     match(TokenType::IDENTIFIER);
-    parse_Args_prime();
-}
-
-void Parser::parse_Args_prime(){
-    if (peek().type == TokenType::PUNC_COMMA) {
+    
+    while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
-        parse_Args();
-    }
-    // lambda production
+        parse_Type();
+        match(TokenType::IDENTIFIER);
+    }//n sei se daria b.o chamar parse_Args aq dentro ! se quiser testar @carol
 }
-
 
 void Parser::parse_Cmd() {
     if (peek().type == TokenType::PUNC_LBRACE) {
         match(TokenType::PUNC_LBRACE);
-        parse_Cmd();
+        while(peek().type != TokenType::PUNC_RBRACE){
+            parse_Cmd();
+        }
         match(TokenType::PUNC_RBRACE);
     }
     else if (peek().type == TokenType::KW_IF) {
         match(TokenType::KW_IF);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        parse_Exp_og();
         match(TokenType::PUNC_RPARENT);
         parse_Cmd();
         match(TokenType::KW_ELSE);
@@ -261,7 +222,7 @@ void Parser::parse_Cmd() {
     else if (peek().type == TokenType::KW_WHILE) {
         match(TokenType::KW_WHILE);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        parse_Exp_og();
         match(TokenType::PUNC_RPARENT);
         parse_Cmd();
     }
@@ -272,55 +233,154 @@ void Parser::parse_Cmd() {
         match(TokenType::PUNC_DOT);
         match(TokenType::KW_PRINTLN);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        parse_Exp_og();
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_SEMICOLON);
     }
-    else { // precisa ser um id
-        match(TokenType::IDENTIFIER);
-        parse_Cmd_prime();
-    }
-}
-
-void Parser::parse_Cmd_prime() {
-
-    if (peek().type == TokenType::OP_ASSIGN) {
-        match(TokenType::OP_ASSIGN);
-    }
-
     else {
-        match(TokenType::PUNC_LBRACKET);
-        parse_Exp();
-        match(TokenType::PUNC_RBRACKET);
+        match(TokenType::IDENTIFIER);
+        
+        if (peek().type == TokenType::PUNC_LBRACKET) {
+            match(TokenType::PUNC_LBRACKET);
+            parse_Exp_og();
+            match(TokenType::PUNC_RBRACKET);
+        }
+
+        match(TokenType::OP_ASSIGN);
+        parse_Exp_og();
+        match(TokenType::PUNC_SEMICOLON);
     }
-
-    parse_Exp();
-    match(TokenType::PUNC_SEMICOLON);
-
 }
 
-// implementação original sem precedência de operadores!
-/*void Parser::parse_Exp_og() {
-    // skeete vai fazer a parte de precedencia de operadores
+bool Parser::is_exp_tail(TokenType type){
+    switch(type){
+        case TokenType::OP_AND:
+        case TokenType::OP_GREATER:
+        case TokenType::OP_PLUS:
+        case TokenType::OP_MINUS:
+        case TokenType::OP_ASTERISK:
+        case TokenType::PUNC_LBRACKET:
+        case TokenType::PUNC_DOT:
+            return true;
+        
+        default:
+            return false;
+    }
+}
+
+void Parser::parse_Exp_og(){
+    if(peek().type == TokenType::OP_NOT){
+        match(TokenType::OP_NOT);
+        parse_Exp_og();
+    }
+    else if(peek().type == TokenType::PUNC_LPARENT){
+        match(TokenType::PUNC_LPARENT);
+        parse_Exp_og();
+        match(TokenType::PUNC_RPARENT);
+    }
+    else if(peek().type == TokenType::KW_TRUE){
+        match(TokenType::KW_TRUE);
+    }
+    else if(peek().type == TokenType::KW_FALSE){
+        match(TokenType::KW_FALSE);
+    }
+    else if(peek().type == TokenType::IDENTIFIER){
+        match(TokenType::IDENTIFIER);
+    }
+    else if(peek().type == TokenType::NUMBER_LITERAL){
+        match(TokenType::NUMBER_LITERAL);
+    }
+    else if(peek().type == TokenType::KW_THIS){
+        match(TokenType::KW_THIS);
+    }
+    else if(peek().type == TokenType::KW_NEW){
+        match(TokenType::KW_NEW);
+        if(peek().type == TokenType::KW_INT){
+            match(TokenType::KW_INT);
+            match(TokenType::PUNC_LBRACKET);
+            parse_Exp_og();
+            match(TokenType::PUNC_RBRACKET);
+        }
+        else{
+            match(TokenType::IDENTIFIER);
+            match(TokenType::PUNC_LPARENT);
+            match(TokenType::PUNC_RPARENT);
+        }
+    }
+    else{
+        throw_error("Erro sintatico (esperava o começo de uma exp)... nao da p produzir lambda a partir de exp e eu nao soube resolver isso dentro dos matches...");
+    }
+
+    // POR ENQUANTO faremos um while. mas isso nao vale DE JEITO NENHUM para a precedencia de operadores
+    while(is_exp_tail(peek().type)){
+        switch(peek().type){
+            case TokenType::OP_AND:
+                match(TokenType::OP_AND);
+                parse_Exp_og();
+                break;
+
+            case TokenType::OP_GREATER:
+                match(TokenType::OP_GREATER);
+                parse_Exp_og();
+                break;
+
+            case TokenType::OP_PLUS:
+                match(TokenType::OP_PLUS);
+                parse_Exp_og();
+                break;
+            
+            case TokenType::OP_MINUS:
+                match(TokenType::OP_MINUS);
+                parse_Exp_og();
+                break;
+            
+            case TokenType::OP_ASTERISK:
+                match(TokenType::OP_ASTERISK);
+                parse_Exp_og();
+                break;
+            
+            case TokenType::PUNC_LBRACKET:
+                match(TokenType::PUNC_LBRACKET);
+                parse_Exp_og();
+                match(TokenType::PUNC_RBRACKET);
+                break;
+            
+            case TokenType::PUNC_DOT:
+                match(TokenType::PUNC_DOT);
+                if(peek().type == TokenType::KW_LENGTH){
+                    match(TokenType::KW_LENGTH);
+                }
+                else{
+                    //segundo a gramatica original, Exp.Exp(ListExp) certo
+                    //porem essa chamada de metodo nao permite q o q vem dps do ponto seja algo alem de um Id ne?
+                    match(TokenType::IDENTIFIER);
+                    match(TokenType::PUNC_LPARENT);
+                    if(peek().type != TokenType::PUNC_RPARENT){
+                        parse_ListExp(); // acho que isso eh parse_Args... to com o feeling de q vai quebrar n sei
+                    }
+                    match(TokenType::PUNC_RPARENT);
+                }
+                break;
+            
+            default:
+                throw_error("Erro sintatico! operador invalido");
+                break;
+        }
+    }
+
 }
 
 void Parser::parse_ListExp() {
-    if (false /*FAZER ISSO AQQQ) { // depende de exp!
-
+    parse_Exp_og();
+    while(peek().type == TokenType::PUNC_COMMA){
+        match(TokenType::PUNC_COMMA);
+        parse_Exp_og();
     }
-
-    // else eh lambda
 }
 
 
-void Parser::parse_ListExp_prime() {
-    if (peek().type == TokenType::PUNC_COMMA) {
-        match(TokenType::PUNC_COMMA);
-        parse_ListExp();
-    }
 
-    // aq eh lambda
-}*/
+/*--------------------------------------------------[AQUI COMEÇA A PRECEDÊNCIA DE OPERADORES]--------------------------------------------------*/
 
 void Parser::parse_Exp() {
     parse_AssignExp();
@@ -329,7 +389,6 @@ void Parser::parse_Exp() {
 void Parser::parse_AssignExp(){
 
 }
-
 
 void Parser::parse_BoolExp() {
     parse_ComparisonExp();
