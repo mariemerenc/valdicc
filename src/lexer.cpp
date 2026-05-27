@@ -49,24 +49,6 @@ void Lexer::handle_lexical_error(const string& invalid_lexeme){
     }
     else{
         full_msg += ("-> Símbolo não reconhecido: " + invalid_lexeme + '\n');
-
-        bool looks_like_word = !invalid_lexeme.empty() && isalpha(invalid_lexeme[0]);
-        if(looks_like_word){
-            string best_match;
-            int best_dist = INT_MAX;
-
-            for(const auto& [keyword, _] : KeywordMap){
-                int dist = UFT::levenshtein_distance(invalid_lexeme, keyword);
-                if(dist < best_dist){
-                    best_dist = dist;
-                    best_match = keyword;
-                }
-            }
-
-            if(best_dist <= 2){
-                full_msg += "-> Você quis dizer: '" + best_match + "'?\n";
-            }
-        }
     }
     throw runtime_error(full_msg);
 }

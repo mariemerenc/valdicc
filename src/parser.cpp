@@ -1,16 +1,10 @@
 #include "../headers/parser.h"
 #include "../headers/usefultools.h"
 #include <stdexcept>
+#include <limits.h>
 using namespace std;
 
-// NOTAS: LEMBRAR DE
-// SEMPRE USAR O ELSE IF, SE NAO NAO EH EXCLUSIVO E FODE COM O PARSER
-// PARENTHESIS = ()
-// BRACKETS = []
-// BRACES = {}
-
-Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) : tokens{tokenss}, symbol_table{symbol_tablee} {
-}
+Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) : tokens{tokenss}, symbol_table{symbol_tablee} { }
 
 
 Token Parser::peek(){
@@ -47,6 +41,23 @@ void Parser::throw_error(const std::string& msg){
                     ": " +
                     msg;
     
+
+    if(curr_token.type == TokenType::IDENTIFIER){
+        string best_match;
+        int best_dist = INT_MAX;
+
+        for(const auto& [keyword, _] : KeywordMap){
+            int dist = UFT::levenshtein_distance(curr_token.lexeme, keyword);
+            if(dist < best_dist){
+                best_dist = dist;
+                best_match = keyword;
+            }
+        }
+
+        if(best_dist <= 2){
+            full_msg += ". Você quis dizer: '" + best_match + "'?";
+        }
+    }
     throw runtime_error(full_msg);
 }
 
