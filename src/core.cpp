@@ -17,7 +17,15 @@ void Core::run(){
     }
 
     Lexer lexer(prep_out_string);
-    std::vector<Token> tokens = lexer.tokenize();
+
+    std::vector<Token> tokens;
+
+    try{
+        tokens = lexer.tokenize();
+    }
+    catch(const exception& e){
+        cerr << e.what() << '\n';
+    }
 
     if(m_running_opts.lexer_output){
         std::ofstream lexer_outfile{m_running_opts.lexer_output_file_path};

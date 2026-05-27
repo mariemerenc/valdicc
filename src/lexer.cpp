@@ -3,6 +3,7 @@
 #include <regex>
 #include <iostream>
 #include <limits.h>
+#include <stdexcept>
 using namespace std;
 
 
@@ -34,14 +35,20 @@ void Lexer::handle_lexical_error(const string& invalid_lexeme){
 
     if(invalid_lexeme == " ") return;
 
-    cout << "[ERRO LÉXICO] na linha " << current_line << ", coluna " << current_column << ":\n";
+    string full_msg = "[ERRO LÉXICO] na linha " +
+                    to_string(current_line) +
+                    ", coluna " +
+                    to_string(current_column) + 
+                    ":\n";
 
     if(regex_match(invalid_lexeme, matches, invalid_id_pattern)){
-        cout << "-> Identificador inválido: " << invalid_lexeme << '\n';
-        cout << "-> REGRA: nomes de variáveis e métodos não podem começar com números!";
+        full_msg += ("-> Identificador inválido: " +
+                    invalid_lexeme + '\n' +
+                    "-> REGRA: nomes de variáveis e métodos não podem começar com números!"
+                    );
     }
     else{
-        cout << "-> Símbolo não reconhecido: " << invalid_lexeme << '\n';
+        full_msg += ("-> Símbolo não reconhecido: " + invalid_lexeme + '\n');
 
         bool looks_like_word = !invalid_lexeme.empty() && isalpha(invalid_lexeme[0]);
         if(looks_like_word){
@@ -57,10 +64,11 @@ void Lexer::handle_lexical_error(const string& invalid_lexeme){
             }
 
             if(best_dist <= 2){
-                cout << "-> Você quis dizer: '" << best_match << "'?\n";
+                full_msg += "-> Você quis dizer: '" + best_match + "'?\n";
             }
         }
     }
+    throw runtime_error(full_msg);
 }
 
 vector<Token> Lexer::tokenize(){
