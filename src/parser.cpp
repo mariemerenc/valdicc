@@ -1,16 +1,13 @@
 #include "../headers/parser.h"
 #include "../headers/usefultools.h"
 #include <stdexcept>
+using namespace std;
 
 // NOTAS: LEMBRAR DE
 // SEMPRE USAR O ELSE IF, SE NAO NAO EH EXCLUSIVO E FODE COM O PARSER
 // PARENTHESIS = ()
 // BRACKETS = []
 // BRACES = {}
-
-using namespace std;
-
-//inicializa o parser
 
 Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) : tokens{tokenss}, symbol_table{symbol_tablee} {
 }
@@ -23,7 +20,7 @@ Token Parser::peek(){
     return tokens[lookahead];
 }
 
-//isso aq foi necessario na hora de verificar se temos alguma declaraçao do tipo Id Id como vc tinha mencionado @carol parser
+
 Token Parser::peek_next(){
     if(lookahead+1 >= tokens.size()){
         return tokens.back();
@@ -31,7 +28,7 @@ Token Parser::peek_next(){
     return tokens[lookahead+1];
 }
 
-//sempre q chamamos o match() ele avança o lookahead :/ ent na hora de inserir na tabela de simbolos se o match fosse bem sucedido, ele nao teria acesso ao token atual, sempre o seguinte. esse previous() eh basicamente pra retornar o anterior pos match (ou seja, o "atual" ...?) 
+
 Token Parser::previous(){
     if(lookahead == 0){
         return tokens[0];
@@ -39,21 +36,21 @@ Token Parser::previous(){
     return tokens[lookahead-1];
 }
 
-//metodo principal de erro
+
 void Parser::throw_error(const std::string& msg){
     Token curr_token = peek();
 
     string full_msg = "Erro na linha " +
-                    to_string(peek().line) +
+                    to_string(curr_token.line) +
                     ", coluna " +
-                    to_string(peek().column) + 
+                    to_string(curr_token.column) + 
                     ": " +
                     msg;
     
     throw runtime_error(full_msg);
 }
 
-//verificaçao do tipo do token recebido e mensagem q sera enviada caso os tipos nao batam
+
 void Parser::match(TokenType expected_type, const string& custom_msg){
     if(peek().type == expected_type){
         lookahead++;
@@ -73,7 +70,7 @@ void Parser::match(TokenType expected_type, const string& custom_msg){
     }
 }
 
-//o metodo que vai começar a analise sintatica
+
 void Parser::parse(){
     parse_Prog();
 
@@ -82,10 +79,12 @@ void Parser::parse(){
     }
 }
 
+
 void Parser::parse_Prog(){
     parse_MainC();
     parse_DefCl();
 }
+
 
 void Parser::parse_MainC(){
     //class ABC { 
@@ -113,6 +112,7 @@ void Parser::parse_MainC(){
     match(TokenType::PUNC_RBRACE, "faltou fechar o } da classe principal");
 }
 
+
 void Parser::parse_DefCl(){
     while(peek().type == TokenType::KW_CLASS){
         match(TokenType::KW_CLASS);
@@ -130,8 +130,8 @@ void Parser::parse_DefCl(){
     }
 }
 
+
 void Parser::parse_DefVar() {
-    //verificaçao do tipo aqui !!! PERCEBA QUE NA ULTIMA LINHA estamos vendo se temos Id Id 
     while ( peek().type == TokenType::KW_INT ||
             peek().type == TokenType::KW_BOOLEAN ||
             (peek().type == TokenType::IDENTIFIER && peek_next().type == TokenType::IDENTIFIER)){
@@ -139,13 +139,8 @@ void Parser::parse_DefVar() {
         match(TokenType::IDENTIFIER);
         match(TokenType::PUNC_SEMICOLON);
     }
-
-    //note de carol: isso me parece fake....... em que mundo podemos ter identifier depois de identifier? 
-    /*
-    note de mari: podemos ter id dps de id! por ex.: Classe objeto; 
-    o problema era ... 
-    */
 }
+
 
 void Parser::parse_DefMet() {
     while(peek().type == TokenType::KW_PUBLIC){
@@ -171,6 +166,7 @@ void Parser::parse_DefMet() {
     }
 }
 
+
 void Parser::parse_Type() {
     if (peek().type == TokenType::KW_INT) {
         match(TokenType::KW_INT);
@@ -190,6 +186,7 @@ void Parser::parse_Type() {
     }
 }
 
+
 void Parser::parse_Args() {
     parse_Type();
     // o parse id eh equivalente a identificar um lexema / identifier
@@ -201,6 +198,7 @@ void Parser::parse_Args() {
         match(TokenType::IDENTIFIER);
     }//n sei se daria b.o chamar parse_Args aq dentro ! se quiser testar @carol
 }
+
 
 void Parser::parse_Cmd() {
     if (peek().type == TokenType::PUNC_LBRACE) {
@@ -252,6 +250,7 @@ void Parser::parse_Cmd() {
     }
 }
 
+
 bool Parser::is_exp_tail(TokenType type){
     switch(type){
         case TokenType::OP_AND:
@@ -267,6 +266,7 @@ bool Parser::is_exp_tail(TokenType type){
             return false;
     }
 }
+
 
 void Parser::parse_Exp_og(){
     if(peek().type == TokenType::OP_NOT){
@@ -308,7 +308,7 @@ void Parser::parse_Exp_og(){
         }
     }
     else{
-        throw_error("Erro sintatico (esperava o começo de uma exp)... nao da p produzir lambda a partir de exp e eu nao soube resolver isso dentro dos matches...");
+        throw_error("Erro sintatico (esperava o começo de uma exp)...");
     }
 
     // POR ENQUANTO faremos um while. mas isso nao vale DE JEITO NENHUM para a precedencia de operadores
@@ -370,6 +370,7 @@ void Parser::parse_Exp_og(){
 
 }
 
+
 void Parser::parse_ListExp() {
     parse_Exp_og();
     while(peek().type == TokenType::PUNC_COMMA){
@@ -377,7 +378,6 @@ void Parser::parse_ListExp() {
         parse_Exp_og();
     }
 }
-
 
 
 /*--------------------------------------------------[AQUI COMEÇA A PRECEDÊNCIA DE OPERADORES]--------------------------------------------------*/

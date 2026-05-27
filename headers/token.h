@@ -43,7 +43,6 @@ enum class TokenType {
     OP_ASSIGN,      ///< '=' operator
     OP_AND,         ///< '&&' operator
     OP_GREATER,     ///< '>' operator
-    OP_LESS,        ///< '<' operator
     OP_PLUS,        ///< '+' operator
     OP_MINUS,       ///< '-' operator
     OP_ASTERISK,    ///< '*' operator
@@ -111,11 +110,16 @@ const unordered_map<string, TokenType> KeywordMap = {
     {"extends", TokenType::KW_EXTENDS}
 };
 
+/**
+ * @brief Dictionary mapping string literals to operators
+ * and punctuation TokenTypes.
+ * * Used by the Lexer to quickly identify and categorize
+ * operators and punctuation marks.
+ */
 const unordered_map<string, TokenType> SymbolMap = {
     {"=", TokenType::OP_ASSIGN},
     {"&&", TokenType::OP_AND},
     {">", TokenType::OP_GREATER},
-    {"<", TokenType::OP_LESS},
     {"+", TokenType::OP_PLUS},
     {"-", TokenType::OP_MINUS},
     {"*", TokenType::OP_ASTERISK},
@@ -131,6 +135,13 @@ const unordered_map<string, TokenType> SymbolMap = {
     {".", TokenType::PUNC_DOT},
 };
 
+/**
+ * @brief Converts a TokenType enumeration value into a readable string.
+ * * This utility function is useful for debugging and generating clear
+ * syntax error messages for the user.
+ * @param type The TokenType to be converted.
+ * @return std::string A string representation of the given token type.
+ */
 inline std::string to_string(TokenType type) {
     switch (type) {
         case TokenType::KW_CLASS: return "KW_CLASS";
