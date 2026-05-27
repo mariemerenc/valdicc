@@ -1,29 +1,28 @@
-#ifndef SYMBOL_TABLE_H
-#define SYMBOL_TABLE_H
+#ifndef ENVIRONMENT_H
+#define ENVIRONMENT_H
 
 #include <unordered_map>
 #include <string>
 #include "symbol.h"
+#include "symbol_table.h"
 #include <vector>
 
-class SymbolTable{
+class Environment{
     private:
-    SymbolTable * prev;
-    std::vector <SymbolTable *> filhos;
-    std::unordered_map<std::string, Symbol> symbol_table; // a tabela de simbolos. eh um mapa em que chave = nome do simbolo, valor = simbolo
+    SymbolTable * pai;
+    SymbolTable * curr;
 
     public:
-    SymbolTable() {};
-
-    SymbolTable * getPrev();
-
-    std::unordered_map<std::string, Symbol> getSymbolTable();
-
-    void addFilhos(SymbolTable * filho);
+    Environment();
 
     bool insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column); // bool pq vai retornar false se por exemplo uma mesma variavel for declarada duas vezes no mesmo escopo 
 
     Symbol* lookup(const std::string& name); //eh a funcao de busca na tabela
+
+    // adiciona novas tabelas de simbolos tal qual uma árvore
+    void addTable();
+
+    void voltar();
 
     void print_symbol_table(); //metodo p printar a tabela
 };
