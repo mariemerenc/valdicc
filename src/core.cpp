@@ -48,6 +48,6 @@ void Core::run(){
         parser.parse();
     }
     catch(const exception& e){
-        cerr << "falhou :(\n[ERRO] " << e.what() << '\n';
+        cerr << "[ERRO SINTÁTICO] " << e.what() << '\n';
     }
 }

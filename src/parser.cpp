@@ -57,9 +57,9 @@ void Parser::match(TokenType expected_type, const string& custom_msg){
     }
     else{
         if(custom_msg.empty()){
-            string msg = "ERRO GENERICO esperava " +
+            string msg = "Esperava " +
                         to_string(expected_type) +
-                        " recebeu " +
+                        ", recebeu " +
                         to_string(peek().type);
 
             throw_error(msg);
@@ -75,7 +75,7 @@ void Parser::parse(){
     parse_Prog();
 
     if(lookahead < tokens.size() && peek().type != TokenType::END_OF_FILE){
-        throw_error("MENSAGEM DE ERRO avisando q tem token dps do fim do arquivo");
+        throw_error("Presença de tokens após EOF.");
     }
 }
 
@@ -89,38 +89,35 @@ void Parser::parse_Prog(){
 void Parser::parse_MainC(){
     //class ABC { 
     match(TokenType::KW_CLASS);
-    match(TokenType::IDENTIFIER, "CADE O NOME DA CLASSE PRINCIPAL");
+    match(TokenType::IDENTIFIER);
     match(TokenType::PUNC_LBRACE);
 
     //public static void main(String[] args) {
     match(TokenType::KW_PUBLIC);
     match(TokenType::KW_STATIC);
-    match(TokenType::KW_VOID, "main precisa ser do tipo void");
-    match(TokenType::KW_MAIN, "cade o main");
+    match(TokenType::KW_VOID);
+    match(TokenType::KW_MAIN);
     match(TokenType::PUNC_LPARENT);
-    match(TokenType::KW_STRING, "o arg de main tem q ser string !");
+    match(TokenType::KW_STRING);
     match(TokenType::PUNC_LBRACKET);
     match(TokenType::PUNC_RBRACKET);
-    match(TokenType::IDENTIFIER, "cade o nome do argumento de main"); // id com o nome do argumento ne...
+    match(TokenType::IDENTIFIER);
     match(TokenType::PUNC_RPARENT);
     match(TokenType::PUNC_LBRACE);
-    
     parse_Cmd();
-
-    //fim do main e fim da classe
-    match(TokenType::PUNC_RBRACE, "faltou fechar o } de main");
-    match(TokenType::PUNC_RBRACE, "faltou fechar o } da classe principal");
+    match(TokenType::PUNC_RBRACE);
+    match(TokenType::PUNC_RBRACE);
 }
 
 
 void Parser::parse_DefCl(){
     while(peek().type == TokenType::KW_CLASS){
         match(TokenType::KW_CLASS);
-        match(TokenType::IDENTIFIER, "cade o nome da classe");
+        match(TokenType::IDENTIFIER);
 
         if(peek().type == TokenType::KW_EXTENDS){
             match(TokenType::KW_EXTENDS);
-            match(TokenType::IDENTIFIER, "cade o nome da classe dps de 'extends'");
+            match(TokenType::IDENTIFIER);
         }
 
         match(TokenType::PUNC_LBRACE);
@@ -132,6 +129,7 @@ void Parser::parse_DefCl(){
 
 
 void Parser::parse_DefVar() {
+    // Uses lookahead (peek_next) to resolve structural ambiguity.
     while ( peek().type == TokenType::KW_INT ||
             peek().type == TokenType::KW_BOOLEAN ||
             (peek().type == TokenType::IDENTIFIER && peek_next().type == TokenType::IDENTIFIER)){
@@ -148,17 +146,13 @@ void Parser::parse_DefMet() {
         parse_Type();
         match(TokenType::IDENTIFIER);
         match(TokenType::PUNC_LPARENT);
-
-        if(peek().type != TokenType::PUNC_RPARENT){ // tenho um feeling q isso pode quebrar a analise
+        if(peek().type != TokenType::PUNC_RPARENT){
             parse_Args();
         }
-
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_LBRACE);
         parse_DefVar();
-        while(peek().type != TokenType::KW_RETURN){
-            parse_Cmd();
-        }
+        parse_Cmd();
         match(TokenType::KW_RETURN);
         parse_Exp_og();
         match(TokenType::PUNC_SEMICOLON);
@@ -189,23 +183,20 @@ void Parser::parse_Type() {
 
 void Parser::parse_Args() {
     parse_Type();
-    // o parse id eh equivalente a identificar um lexema / identifier
     match(TokenType::IDENTIFIER);
     
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
         parse_Type();
         match(TokenType::IDENTIFIER);
-    }//n sei se daria b.o chamar parse_Args aq dentro ! se quiser testar @carol
+    }
 }
 
 
 void Parser::parse_Cmd() {
     if (peek().type == TokenType::PUNC_LBRACE) {
         match(TokenType::PUNC_LBRACE);
-        while(peek().type != TokenType::PUNC_RBRACE){
-            parse_Cmd();
-        }
+        parse_Cmd();
         match(TokenType::PUNC_RBRACE);
     }
     else if (peek().type == TokenType::KW_IF) {
@@ -235,6 +226,7 @@ void Parser::parse_Cmd() {
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_SEMICOLON);
     }
+    // left factoring applied here
     else {
         match(TokenType::IDENTIFIER);
         
@@ -308,10 +300,11 @@ void Parser::parse_Exp_og(){
         }
     }
     else{
-        throw_error("Erro sintatico (esperava o começo de uma exp)...");
+        throw_error("Esperava o começo de uma Exp.");
     }
 
-    // POR ENQUANTO faremos um while. mas isso nao vale DE JEITO NENHUM para a precedencia de operadores
+    // this loop eliminates left recursion by parsing the base expressions 
+    // first, then consuming the operators and RHS expressions 
     while(is_exp_tail(peek().type)){
         switch(peek().type){
             case TokenType::OP_AND:
@@ -346,24 +339,24 @@ void Parser::parse_Exp_og(){
                 break;
             
             case TokenType::PUNC_DOT:
+                //left factoring applied here
                 match(TokenType::PUNC_DOT);
                 if(peek().type == TokenType::KW_LENGTH){
                     match(TokenType::KW_LENGTH);
                 }
                 else{
-                    //segundo a gramatica original, Exp.Exp(ListExp) certo
-                    //porem essa chamada de metodo nao permite q o q vem dps do ponto seja algo alem de um Id ne?
                     match(TokenType::IDENTIFIER);
                     match(TokenType::PUNC_LPARENT);
+                    //handling zero argument function
                     if(peek().type != TokenType::PUNC_RPARENT){
-                        parse_ListExp(); // acho que isso eh parse_Args... to com o feeling de q vai quebrar n sei
+                        parse_ListExp(); 
                     }
                     match(TokenType::PUNC_RPARENT);
                 }
                 break;
             
             default:
-                throw_error("Erro sintatico! operador invalido");
+                throw_error("Operador inválido!");
                 break;
         }
     }
