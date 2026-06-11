@@ -16,8 +16,8 @@ class BT {
 
 		root = new T();
 		ntb = root.Init(16);
-		ntb = root.Print()
-		System.out.println(100000000)
+		ntb = root.Print();
+		System.out.println(100000000);
 		ntb = root.Insert(8) ;
 		ntb = root.Print();
 		ntb = root.Insert(24) ;
@@ -36,7 +36,7 @@ class BT {
 		ntb = root.Print();
 		System.out.println(root.Search(12));
 
-		return;
+		return root;
     }
 
 }
@@ -53,7 +53,7 @@ class T {
 		key = v_key ;
 		has_left = false ;
 		has_right = false ;
-		8 = v_key
+		oito = v_key;
 		return true ;
     }
 

@@ -115,7 +115,7 @@ void Parser::parse_MainC(){
     match(TokenType::IDENTIFIER);
     match(TokenType::PUNC_RPARENT);
     match(TokenType::PUNC_LBRACE);
-    parse_Cmd();
+    parse_Lcom();
     match(TokenType::PUNC_RBRACE);
     match(TokenType::PUNC_RBRACE);
 }
@@ -163,9 +163,9 @@ void Parser::parse_DefMet() {
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_LBRACE);
         parse_DefVar();
-        parse_Cmd();
+        parse_Lcom();
         match(TokenType::KW_RETURN);
-        parse_Exp_og();
+        parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
         match(TokenType::PUNC_RBRACE);
     }
@@ -203,26 +203,45 @@ void Parser::parse_Args() {
     }
 }
 
+void Parser::parse_Lcom(){
+    parse_Cmd();
+
+    // { agindo como um iniciador de comando para resolver bugs de if { exp } ou if exp 
+    while ( peek().type == TokenType::IDENTIFIER ||
+            peek().type == TokenType::KW_IF ||
+            peek().type == TokenType::KW_WHILE ||
+            peek().type == TokenType::KW_SYSTEM || 
+            peek().type == TokenType::PUNC_LBRACE){
+                parse_Cmd();
+            }
+}
 
 void Parser::parse_Cmd() {
-    if (peek().type == TokenType::PUNC_LBRACE) {
+    if(peek().type == TokenType::PUNC_LBRACE){
         match(TokenType::PUNC_LBRACE);
-        parse_Cmd();
+
+        if(peek().type != TokenType::PUNC_RBRACE){
+            parse_Lcom();
+        }
         match(TokenType::PUNC_RBRACE);
     }
     else if (peek().type == TokenType::KW_IF) {
         match(TokenType::KW_IF);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp_og();
+        parse_Exp();
         match(TokenType::PUNC_RPARENT);
         parse_Cmd();
-        match(TokenType::KW_ELSE);
-        parse_Cmd();
+
+        //I --> else { Lcom } | lambda
+        if(peek().type == TokenType::KW_ELSE){
+            match(TokenType::KW_ELSE);
+            parse_Cmd();
+        }
     }
     else if (peek().type == TokenType::KW_WHILE) {
         match(TokenType::KW_WHILE);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp_og();
+        parse_Exp();
         match(TokenType::PUNC_RPARENT);
         parse_Cmd();
     }
@@ -233,7 +252,7 @@ void Parser::parse_Cmd() {
         match(TokenType::PUNC_DOT);
         match(TokenType::KW_PRINTLN);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp_og();
+        parse_Exp();
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_SEMICOLON);
     }
@@ -243,42 +262,106 @@ void Parser::parse_Cmd() {
         
         if (peek().type == TokenType::PUNC_LBRACKET) {
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp_og();
+            parse_Exp();
             match(TokenType::PUNC_RBRACKET);
         }
 
         match(TokenType::OP_ASSIGN);
-        parse_Exp_og();
+        parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
     }
 }
 
+void Parser::parse_Exp() {
+    parse_And_exp();
+}
 
-bool Parser::is_exp_tail(TokenType type){
-    switch(type){
-        case TokenType::OP_AND:
-        case TokenType::OP_GREATER:
-        case TokenType::OP_PLUS:
-        case TokenType::OP_MINUS:
-        case TokenType::OP_ASTERISK:
-        case TokenType::PUNC_LBRACKET:
-        case TokenType::PUNC_DOT:
-            return true;
-        
-        default:
-            return false;
+void Parser::parse_And_exp(){
+    parse_Rel_exp();
+
+    while(peek().type == TokenType::OP_AND){
+        match(TokenType::OP_AND);
+        parse_Rel_exp();
     }
 }
 
+void Parser::parse_Rel_exp(){
+    parse_Add_exp();
 
-void Parser::parse_Exp_og(){
+    while(peek().type == TokenType::OP_GREATER){
+        match(TokenType::OP_GREATER);
+        parse_Add_exp();
+    }
+}
+
+void Parser::parse_Add_exp(){
+    parse_Mul_exp();
+
+    while(peek().type == TokenType::OP_PLUS || peek().type == TokenType::OP_MINUS){
+        if(peek().type == TokenType::OP_PLUS){
+            match(TokenType::OP_PLUS);
+        }
+        else{
+            match(TokenType::OP_MINUS);
+        }
+        parse_Mul_exp();
+    }
+}
+
+void Parser::parse_Mul_exp(){
+    parse_Un_exp();
+
+    while(peek().type == TokenType::OP_ASTERISK){
+        match(TokenType::OP_ASTERISK);
+        parse_Un_exp();
+    }
+}
+
+void Parser::parse_Un_exp(){
     if(peek().type == TokenType::OP_NOT){
         match(TokenType::OP_NOT);
-        parse_Exp_og();
+        parse_Un_exp();
     }
-    else if(peek().type == TokenType::PUNC_LPARENT){
+    else{
+        parse_Psf_exp();
+    }
+}
+
+void Parser::parse_Psf_exp(){
+    parse_Pri_exp();
+
+    while(peek().type == TokenType::PUNC_LBRACKET || peek().type == TokenType::PUNC_DOT){
+        if(peek().type == TokenType::PUNC_LBRACKET){
+            match(TokenType::PUNC_LBRACKET);
+            parse_Exp();
+            match(TokenType::PUNC_RBRACKET);
+        }
+        else{
+            match(TokenType::PUNC_DOT);
+            //left factoring applied here
+            if(peek().type == TokenType::KW_LENGTH){
+                match(TokenType::KW_LENGTH);
+            }
+            else{
+                match(TokenType::IDENTIFIER);
+                match(TokenType::PUNC_LPARENT);
+
+                //handling zero argument function
+                if(peek().type != TokenType::PUNC_RPARENT){
+                    parse_ListExp(); 
+                }
+
+                match(TokenType::PUNC_RPARENT);
+            }
+        }
+        
+    }
+}
+
+void Parser::parse_Pri_exp(){
+    if(peek().type == TokenType::PUNC_LPARENT){
         match(TokenType::PUNC_LPARENT);
-        parse_Exp_og();
+        parse_Exp();
         match(TokenType::PUNC_RPARENT);
     }
     else if(peek().type == TokenType::KW_TRUE){
@@ -301,7 +384,7 @@ void Parser::parse_Exp_og(){
         if(peek().type == TokenType::KW_INT){
             match(TokenType::KW_INT);
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp_og();
+            parse_Exp();
             match(TokenType::PUNC_RBRACKET);
         }
         else{
@@ -313,153 +396,12 @@ void Parser::parse_Exp_og(){
     else{
         throw_error("Esperava o começo de uma Exp.");
     }
-
-    // this loop eliminates left recursion by parsing the base expressions 
-    // first, then consuming the operators and RHS expressions 
-    while(is_exp_tail(peek().type)){
-        switch(peek().type){
-            case TokenType::OP_AND:
-                match(TokenType::OP_AND);
-                parse_Exp_og();
-                break;
-
-            case TokenType::OP_GREATER:
-                match(TokenType::OP_GREATER);
-                parse_Exp_og();
-                break;
-
-            case TokenType::OP_PLUS:
-                match(TokenType::OP_PLUS);
-                parse_Exp_og();
-                break;
-            
-            case TokenType::OP_MINUS:
-                match(TokenType::OP_MINUS);
-                parse_Exp_og();
-                break;
-            
-            case TokenType::OP_ASTERISK:
-                match(TokenType::OP_ASTERISK);
-                parse_Exp_og();
-                break;
-            
-            case TokenType::PUNC_LBRACKET:
-                match(TokenType::PUNC_LBRACKET);
-                parse_Exp_og();
-                match(TokenType::PUNC_RBRACKET);
-                break;
-            
-            case TokenType::PUNC_DOT:
-                //left factoring applied here
-                match(TokenType::PUNC_DOT);
-                if(peek().type == TokenType::KW_LENGTH){
-                    match(TokenType::KW_LENGTH);
-                }
-                else{
-                    match(TokenType::IDENTIFIER);
-                    match(TokenType::PUNC_LPARENT);
-                    //handling zero argument function
-                    if(peek().type != TokenType::PUNC_RPARENT){
-                        parse_ListExp(); 
-                    }
-                    match(TokenType::PUNC_RPARENT);
-                }
-                break;
-            
-            default:
-                throw_error("Operador inválido!");
-                break;
-        }
-    }
-
 }
-
 
 void Parser::parse_ListExp() {
-    parse_Exp_og();
+    parse_Exp();
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
-        parse_Exp_og();
+        parse_Exp();
     }
 }
-
-
-/*--------------------------------------------------[AQUI COMEÇA A PRECEDÊNCIA DE OPERADORES]--------------------------------------------------*/
-
-void Parser::parse_Exp() {
-    parse_AssignExp();
-}
-
-void Parser::parse_AssignExp(){
-
-}
-
-void Parser::parse_BoolExp() {
-    parse_ComparisonExp();
-
-    if (peek().type == TokenType::OP_AND) {
-        match(TokenType::OP_AND);
-    }
-
-    // se nao, eh so o comparison
-}
-
-
-
-void Parser::parse_ComparisonExp(){
-    parse_AddExp();
-    
-    if (peek().type == TokenType::OP_GREATER) {
-        match(TokenType::OP_GREATER);
-        parse_ComparisonExp();
-    }
-
-    // else eh lambda
-}
-
-void Parser::parse_AddExp(){
-    parse_MulExp();
-
-    if (peek().type == TokenType::OP_PLUS) {
-        //
-    }
-}
-
-void Parser::parse_MulExp(){
-
-}
-
-void Parser::parse_PrimaryExpression(){
-
-}
-
-void Parser::parse_IndexExp(){
-
-}
-
-void Parser::parse_ArrayInit(){
-
-}
-
-void Parser::parse_LiteralList(){
-
-}
-
-void Parser::parse_Literal(){ // idk what this is, eh um lexema of some sort?
-
-}
-
-void Parser::parse_MemberExp(){
-
-}
-
-void Parser::parse_FuncCall(){
-
-}
-
-void Parser::parse_ExpList(){
-
-}
-
-
-

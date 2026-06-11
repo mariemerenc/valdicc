@@ -92,39 +92,24 @@ class Parser{
 
     /** @brief Parses a list of arguments. */
     void parse_Args();
+
+    /** @brief Parses ... */
+    void parse_Lcom();
     
     /** @brief Parses execution commands (if/else, while, assignments, print). */
     void parse_Cmd();
-
-    /**
-     * @brief Checks if a given token type is a valid operator for an expression tail.
-     * 
-     * @param type The TokenType to evaluate. 
-     * @return true If token is in the "list" of valid TokenTypes;
-     * @return false Otherwise.
-     */
-    bool is_exp_tail(TokenType type);
-
-    /** @brief Parses mathematical, logical and relational expressions, without handling operator precedence. */
-    void parse_Exp_og();
 
     /** @brief Parses a list of expressions (e.g., method call args). */
     void parse_ListExp();
 
     void parse_Exp();
-    void parse_AssignExp();
-    void parse_BoolExp();
-    void parse_ComparisonExp();
-    void parse_AddExp();
-    void parse_MulExp();
-    void parse_PrimaryExpression();
-    void parse_IndexExp();
-    void parse_ArrayInit();
-    void parse_LiteralList();
-    void parse_Literal(); // idk what this is, eh um lexema of some sort?
-    void parse_MemberExp();
-    void parse_FuncCall();
-    void parse_ExpList();
+    void parse_And_exp();
+    void parse_Rel_exp();
+    void parse_Add_exp();
+    void parse_Mul_exp();
+    void parse_Un_exp();
+    void parse_Psf_exp();
+    void parse_Pri_exp();
 };
 
 #endif
