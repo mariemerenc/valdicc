@@ -163,7 +163,15 @@ void Parser::parse_DefMet() {
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_LBRACE);
         parse_DefVar();
-        parse_Lcom();
+        
+        while ( peek().type == TokenType::IDENTIFIER ||
+                peek().type == TokenType::KW_IF ||
+                peek().type == TokenType::KW_WHILE ||
+                peek().type == TokenType::KW_SYSTEM || 
+                peek().type == TokenType::PUNC_LBRACE){
+                parse_Cmd();
+            }
+
         match(TokenType::KW_RETURN);
         parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
