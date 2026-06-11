@@ -22,7 +22,7 @@ void Core::run(){
     }
     catch(const exception& e){
         cerr << e.what() << '\n';
-        if(m_running_opts.stop_on_first_error) return;
+        return;
     }
 
     if(m_running_opts.clean_output){

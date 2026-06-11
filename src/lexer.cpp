@@ -168,5 +168,14 @@ vector<Token> Lexer::tokenize(){
         handle_lexical_error(invalid_text);
     }
 
+    if(!lexical_errors.empty()){
+        string all_errors = "";
+
+        for(const string& err : lexical_errors){
+            all_errors += err + '\n';
+        }
+        throw runtime_error(all_errors);
+    }
+
     return tokens;
 }
