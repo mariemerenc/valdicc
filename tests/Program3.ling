@@ -38,7 +38,7 @@ ls01 = false ;
 achou = 0 ;
 	
 	//System.out.println(num);
-	while (j > (size)) {aux01 = number[j] ;aux02 = num + 1 ;if (aux01 < num) nt = 0 ;
+	while (j > (size)) {aux01 = number[j] ;aux02 = num + 1 ;if (aux01 > num) nt = 0 ;
 	    else if (!(aux01 > aux02)) nt = 0 ;
 	    else {ls01 = true ;achou = 1 ;j = size ;}
 	    j = j + 1 ;

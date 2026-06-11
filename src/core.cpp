@@ -9,14 +9,11 @@
 #include <vector>
 
 void Core::run(){
-    std::string prep_out_string = Preprocessor::preprocess_input(m_filestream);
-    if(m_running_opts.preprocessor_output){
-        std::ofstream prep_outfile(m_running_opts.preprocessor_output_file_path);
-        prep_outfile << prep_out_string;
-        prep_outfile.close();
-    }
+    std::stringstream s;
+    s << m_filestream.rdbuf();
+    std::string source_code = s.str();
 
-    Lexer lexer(prep_out_string);
+    Lexer lexer(source_code, m_running_opts);
 
     std::vector<Token> tokens;
 
@@ -25,6 +22,13 @@ void Core::run(){
     }
     catch(const exception& e){
         cerr << e.what() << '\n';
+        return;
+    }
+
+    if(m_running_opts.clean_output){
+        std::ofstream clean_outfile(m_running_opts.clean_output_file_path);
+        clean_outfile << lexer.clean_source_code;
+        clean_outfile.close();
     }
 
     if(m_running_opts.lexer_output){
@@ -42,7 +46,7 @@ void Core::run(){
     }
 
     SymbolTable table; //ta vazia
-    Parser parser(tokens, table);
+    Parser parser(tokens, table, m_running_opts);
 
     try{
         parser.parse();

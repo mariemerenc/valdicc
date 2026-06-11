@@ -13,14 +13,18 @@ struct RunningOptions{
     std::string input_file_path = "";
 
     /** @brief Path to the output file where the preprocessed code will be saved.*/
-    std::string preprocessor_output_file_path = "";
+    std::string clean_output_file_path = "";
     
     /** @brief Flag indicating whether the preprocessor output should be exported to a file.*/
-    bool preprocessor_output = false;
+    bool clean_output = false;
 
     /** @brief Path to the file where the Lexer output will be saved.*/
     std::string lexer_output_file_path = "";
     
     /** @brief Flag indicating whether the Lexer output should be exported to a file.*/
     bool lexer_output = false;
+
+    bool stop_on_first_error = false;
+
+    bool suggest_corrections = false;
 };

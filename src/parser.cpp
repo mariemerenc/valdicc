@@ -4,7 +4,7 @@
 #include <limits.h>
 using namespace std;
 
-Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee) : tokens{tokenss}, symbol_table{symbol_tablee} { }
+Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee, RunningOptions opts) : tokens{tokenss}, symbol_table{symbol_tablee}, m_running_opts{opts} { }
 
 
 Token Parser::peek(){
@@ -42,7 +42,7 @@ void Parser::throw_error(const std::string& msg){
                     msg;
     
 
-    if(curr_token.type == TokenType::IDENTIFIER){
+    if(curr_token.type == TokenType::IDENTIFIER && m_running_opts.suggest_corrections){
         string best_match;
         int best_dist = INT_MAX;
 
