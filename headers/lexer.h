@@ -5,6 +5,7 @@
 #include <vector>
 #include <regex>
 #include "token.h"
+#include "running_opts.h"
 
 /**
  * @class Lexer
@@ -21,6 +22,9 @@ class Lexer{
     int current_line;
     /** @brief Current column number (starts at 1).*/
     int current_column;
+
+    RunningOptions m_running_opts;
+    std::vector<std::string> lexical_errors;
 
     /**
      * @brief Determines if a lexeme is a keyword or an identifier.
@@ -46,10 +50,11 @@ class Lexer{
 
     public:
     /** @brief Lexer constructor.*/
-    Lexer(const std::string& preprocessor_output) {
+    Lexer(const std::string& preprocessor_output, RunningOptions opts) {
         current_column = 1; 
         current_line = 1;
         source_code = preprocessor_output;
+        m_running_opts = opts;
     };
 
     /**

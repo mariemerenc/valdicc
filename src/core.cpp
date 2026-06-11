@@ -13,7 +13,7 @@ void Core::run(){
     s << m_filestream.rdbuf();
     std::string source_code = s.str();
 
-    Lexer lexer(source_code);
+    Lexer lexer(source_code, m_running_opts);
 
     std::vector<Token> tokens;
 
@@ -22,6 +22,7 @@ void Core::run(){
     }
     catch(const exception& e){
         cerr << e.what() << '\n';
+        if(m_running_opts.stop_on_first_error) return;
     }
 
     if(m_running_opts.clean_output){
@@ -45,7 +46,7 @@ void Core::run(){
     }
 
     SymbolTable table; //ta vazia
-    Parser parser(tokens, table);
+    Parser parser(tokens, table, m_running_opts);
 
     try{
         parser.parse();

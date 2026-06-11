@@ -23,4 +23,8 @@ struct RunningOptions{
     
     /** @brief Flag indicating whether the Lexer output should be exported to a file.*/
     bool lexer_output = false;
+
+    bool stop_on_first_error = false;
+
+    bool suggest_corrections = false;
 };

@@ -25,7 +25,9 @@ int parse_argv(int argc, char** argv, CLI::App &cli_app, RunningOptions &run_opt
 
     cli_app.add_option("-c", clean_output_filename, "Clean (''preprocessed'') output");
     cli_app.add_option("-l", lexer_output_filename, "Lexer output");
-    
+    cli_app.add_flag("--stop-on-first-error", run_opts.stop_on_first_error, "");
+    cli_app.add_flag("--suggest", run_opts.suggest_corrections, "");
+
     try{cli_app.parse(argc, argv);}
     catch(CLI::ParseError){
         std::cerr << "parse error\n";
