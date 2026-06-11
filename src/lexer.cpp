@@ -58,15 +58,17 @@ vector<Token> Lexer::tokenize(){
     /**
      * @brief Regular expression that captures all valid lexemes.
      * 
-     * 1st group: \s matches any whitespace character, + matches preceding token >= 1 times;
+     * 1st group: matches line comments and block comments;
      * 
-     * 2nd group: [a-zA-Z] match a single alphabetic character, [a-zA-Z0-9_] match alphanumeric characters (allowing underscore occurrences), * matches preceding token >= 0 times;
+     * 2nd group: \s matches any whitespace character, + matches preceding token >= 1 times;
      * 
-     * 3rd group: [0-9] match a single numeric character, + matches preceding token >= 1 times;
+     * 3rd group: [a-zA-Z] match a single alphabetic character, [a-zA-Z0-9_] match alphanumeric characters (allowing underscore occurrences), * matches preceding token >= 0 times;
      * 
-     * 4th group: && matches the characters && literally, [=+\-!><;\*,.\[\]{}()] match ...
+     * 4th group: [0-9] match a single numeric character, + matches preceding token >= 1 times;
+     * 
+     * 5th group: && matches the characters && literally, [=+\-!><;\*,.\[\]{}()] match ...
      */
-    static const regex token_regex(R"((\s+)|([a-zA-Z_][a-zA-Z0-9_]*)|([0-9]+)|(&&|[=+\-!><;\*,.\[\]{}()]))");
+    static const regex token_regex(R"((//[^\n]*|/\*[\s\S]*?\*/)|(\s+)|([a-zA-Z_][a-zA-Z0-9_]*)|([0-9]+)|(&&|[=+\-!><;\*,.\[\]{}()]))");
 
     size_t expected_pos = 0;
     auto it_begin = sregex_iterator(source_code.begin(), source_code.end(), token_regex);
@@ -89,21 +91,32 @@ vector<Token> Lexer::tokenize(){
 
         expected_pos = match_pos + lexeme.length();
 
-        // 1st case: whitespaces
         if(match[1].matched){
+            for(char l : lexeme){
+                if(l == '\n'){
+                    clean_source_code += '\n';
+                }
+            }
+        }
+        else{
+            clean_source_code += lexeme;
+        }
+
+        // 1st and 2nd cases: comments and whitespaces
+        if(match[1].matched || match[2].matched){
             continue;
         }
-        // 2nd case: identifier or keyword
-        else if(match[2].matched){
+        // 3rd case: identifier or keyword
+        else if(match[3].matched){
             TokenType tkn_type = classify_lexeme(lexeme);
             tokens.push_back({tkn_type, lexeme, start_line, start_column});
         }
-        // 3rd case: number
-        else if(match[3].matched){
+        // 4th case: number
+        else if(match[4].matched){
             tokens.push_back({TokenType::NUMBER_LITERAL, lexeme, start_line, start_column});
         }
-        // 4th case: punctuation or operator
-        else if(match[4].matched){
+        // 5th case: punctuation or operator
+        else if(match[5].matched){
             auto it = SymbolMap.find(lexeme);
             if(it != SymbolMap.end()){
                 tokens.push_back({it->second, lexeme, start_line, start_column});

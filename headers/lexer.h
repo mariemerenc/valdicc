@@ -61,6 +61,8 @@ class Lexer{
      */
     std::vector<Token> tokenize();
 
+    /** @brief   */
+    std::string clean_source_code = "";
 };
 
 #endif

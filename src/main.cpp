@@ -16,14 +16,14 @@
  */
 int parse_argv(int argc, char** argv, CLI::App &cli_app, RunningOptions &run_opts){
     std::string input_filename = "";
-    std::string preprocessor_output_filename = "";
+    std::string clean_output_filename = "";
     std::string lexer_output_filename = "";
 
     cli_app.add_option("input", input_filename, ".java input file")
     ->required()
     ->check(CLI::ExistingFile);
 
-    cli_app.add_option("-p", preprocessor_output_filename, "Preprocessor output");
+    cli_app.add_option("-c", clean_output_filename, "Clean (''preprocessed'') output");
     cli_app.add_option("-l", lexer_output_filename, "Lexer output");
     
     try{cli_app.parse(argc, argv);}
@@ -33,9 +33,9 @@ int parse_argv(int argc, char** argv, CLI::App &cli_app, RunningOptions &run_opt
     }
     
     run_opts.input_file_path = input_filename;
-    if(preprocessor_output_filename != ""){
-        run_opts.preprocessor_output_file_path = preprocessor_output_filename;
-        run_opts.preprocessor_output = true;
+    if(clean_output_filename != ""){
+        run_opts.clean_output_file_path = clean_output_filename;
+        run_opts.clean_output = true;
     }
     if(lexer_output_filename != ""){
         run_opts.lexer_output_file_path = lexer_output_filename;
@@ -59,7 +59,7 @@ int main(int argc, char** argv){
     RunningOptions run_opts = RunningOptions();
     CLI::App cli_app("Compiler commandline parser", "vcc");
     if(parse_argv(argc, argv, cli_app, run_opts) != 0){
-        std::cerr << "Invalid arguments. Try running\nvcc \'input_file\'.java -p \'output_file\'.txt\n";
+        std::cerr << "Invalid arguments. Try running\n./build/vcc tests/\'input_file\'.ling -c \'clean_output_file\'.txt -l \'token_list_output\'.txt \n";
         return 1;
     }
     Core core_app(run_opts);
