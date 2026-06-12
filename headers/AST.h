@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 #include <string>
@@ -11,10 +12,19 @@ public:
 };
 
 
-class ExprNode : public ASTNode{};
+class ExprNode : public ASTNode{
+protected:
+    enum ExprType{
+        INT, FLOAT, BOOL, ID
+    };
+    ExprType type;
+    size_t n_array; //if 0, it's a plain value. other wise is an n-dimensional array
+};
 
 class AST{
+private:
     unique_ptr<ASTNode> tree_root;
+public:
     string print_tree();
 };
 
@@ -70,5 +80,55 @@ namespace node_types{
     class PrintLn : public ASTNode{
         unique_ptr<ExprNode> print_exp;
     };
+    class AndExpr : public ExprNode{
+        unique_ptr<ExprNode> lhs;
+        unique_ptr<ExprNode> rhs;
+        bool val;
+        
+    };
+    class RelExpr : public ExprNode{
+        unique_ptr<ExprNode> lhs;
+        unique_ptr<ExprNode> rhs;
+        bool val;
 
+    };
+    class AddExpr : public ExprNode{
+        int64_t val;
+        string op;
+        unique_ptr<ExprNode> lhs;
+        unique_ptr<ExprNode> rhs;
+    };
+    class MulDivExpr : public ExprNode{
+        int64_t val;
+        string op;
+        unique_ptr<ExprNode> lhs;
+        unique_ptr<ExprNode> rhs;
+    };
+    class NegateExpr : public ExprNode{
+        bool is_negated;
+        unique_ptr<ExprNode> lhs;
+    };
+    class PrimaryAccessExpr : public ExprNode{
+        unique_ptr<ExprNode> lhs;
+        vector<unique_ptr<ExprNode>> access_expr;
+        enum class PEModifier {
+            LENGTH,
+            ARRAY_ACCESS,
+            CLASS_CONSTRUCT,
+        };
+        PEModifier expr_kind;
+    };
+    class PrimaryExpr : public ExprNode{
+        unique_ptr<ExprNode> expr;
+    };
+    class TrueFalseLiteral : public ExprNode{
+        bool val;
+        TrueFalseLiteral(bool v){
+            val = v;
+            type = BOOL;
+        }
+    };
+    class NumLiteral : public ExprNode{
+        int64_t val;
+    };
 }
