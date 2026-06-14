@@ -5,6 +5,7 @@
 Environment::Environment() {
     root = new SymbolTable(nullptr);
     curr = root;
+    scope = 0;
 }
 
 Environment::~Environment(){
@@ -16,11 +17,13 @@ void Environment::addTable() { // ativar com base no escopo or something
 
     (*curr).addFilhos(novo);
     curr = novo;
+    scope++;
 }
 
 void Environment::voltar() {
     if(curr != nullptr && (*curr).getPrev() != nullptr){
         curr = (*curr).getPrev();
+        scope--;
     }   
 }
 
@@ -43,4 +46,8 @@ Symbol * Environment::lookup(const std::string& name) {
     }
     
     return nullptr;
+}
+
+int Environment::get_scope(){
+    return scope;
 }

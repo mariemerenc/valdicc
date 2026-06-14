@@ -4,7 +4,7 @@
 #include <limits.h>
 using namespace std;
 
-Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee, RunningOptions opts) : tokens{tokenss}, symbol_table{symbol_tablee}, m_running_opts{opts} { }
+Parser::Parser(const std::vector<Token>& tokenss, RunningOptions opts) : tokens{tokenss}, m_running_opts{opts} {}
 
 
 Token Parser::peek(){
@@ -100,41 +100,65 @@ void Parser::parse_Prog(){
 void Parser::parse_MainC(){
     //class ABC { 
     match(TokenType::KW_CLASS);
+    Token tkn_class = peek();
     match(TokenType::IDENTIFIER);
+    env.insert(tkn_class.lexeme, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
     match(TokenType::PUNC_LBRACE);
+    env.addTable();
 
     //public static void main(String[] args) {
     match(TokenType::KW_PUBLIC);
     match(TokenType::KW_STATIC);
     match(TokenType::KW_VOID);
     match(TokenType::KW_MAIN);
+
+    env.addTable();
+
     match(TokenType::PUNC_LPARENT);
     match(TokenType::KW_STRING);
     match(TokenType::PUNC_LBRACKET);
     match(TokenType::PUNC_RBRACKET);
+
+    Token tkn_args = peek();
     match(TokenType::IDENTIFIER);
+
+    env.insert(tkn_args.lexeme, "String[]", SymbolKind::VARIABLE, env.get_scope(), tkn_args.line, tkn_args.column);
     match(TokenType::PUNC_RPARENT);
     match(TokenType::PUNC_LBRACE);
     parse_Lcom();
     match(TokenType::PUNC_RBRACE);
+    env.voltar();
     match(TokenType::PUNC_RBRACE);
+    env.voltar();
 }
 
 
 void Parser::parse_DefCl(){
     while(peek().type == TokenType::KW_CLASS){
         match(TokenType::KW_CLASS);
+
+        Token tkn_class = peek();
         match(TokenType::IDENTIFIER);
 
+        //std::string parent = "";
         if(peek().type == TokenType::KW_EXTENDS){
             match(TokenType::KW_EXTENDS);
+            //parent = peek().lexeme;
             match(TokenType::IDENTIFIER);
         }
 
+        bool success = env.insert(tkn_class.lexeme, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
+
+        if(!success){
+            throw_error("Classe já declarada: " + tkn_class.lexeme);
+        }
+
         match(TokenType::PUNC_LBRACE);
+        env.addTable();
         parse_DefVar();
         parse_DefMet();
         match(TokenType::PUNC_RBRACE);
+        env.voltar();
     }
 }
 
@@ -144,8 +168,15 @@ void Parser::parse_DefVar() {
     while ( peek().type == TokenType::KW_INT ||
             peek().type == TokenType::KW_BOOLEAN ||
             (peek().type == TokenType::IDENTIFIER && peek_next().type == TokenType::IDENTIFIER)){
-        parse_Type();
+        std::string tkn_type = parse_Type_str();
+        Token tkn_id = peek();
         match(TokenType::IDENTIFIER);
+
+        bool success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+
+        if(!success){
+            throw_error("Variável já declarada neste escopo: " + tkn_id.lexeme);
+        }
         match(TokenType::PUNC_SEMICOLON);
     }
 }
@@ -154,8 +185,20 @@ void Parser::parse_DefVar() {
 void Parser::parse_DefMet() {
     while(peek().type == TokenType::KW_PUBLIC){
         match(TokenType::KW_PUBLIC);
-        parse_Type();
+        
+        std::string tkn_return_type = parse_Type_str(); 
+
+        Token tkn_met = peek();
         match(TokenType::IDENTIFIER);
+
+        bool success = env.insert(tkn_met.lexeme, tkn_return_type, SymbolKind::METHOD, env.get_scope(), tkn_met.line, tkn_met.column);
+
+        if(!success){
+            throw_error("Método já declarado: " + tkn_met.lexeme);
+        }
+
+        env.addTable();  // criar tabela antes de ler os args para as variaveis de parse_Args e parse_DefVar ficarem jutnas
+
         match(TokenType::PUNC_LPARENT);
         if(peek().type != TokenType::PUNC_RPARENT){
             parse_Args();
@@ -176,9 +219,33 @@ void Parser::parse_DefMet() {
         parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
         match(TokenType::PUNC_RBRACE);
+        env.voltar();
     }
 }
 
+std::string Parser::parse_Type_str() {
+    if (peek().type == TokenType::KW_INT) {
+        match(TokenType::KW_INT);
+
+        if (peek().type == TokenType::PUNC_LBRACKET) {
+            match(TokenType::PUNC_LBRACKET);
+            match(TokenType::PUNC_RBRACKET);
+            return "int[]";
+        }
+        return "int";
+    }
+
+    else if (peek().type == TokenType::KW_BOOLEAN) {
+        match(TokenType::KW_BOOLEAN);
+        return "boolean";
+    }
+
+    else {
+        std::string name = peek().lexeme;
+        match(TokenType::IDENTIFIER);
+        return name;
+    }
+}
 
 void Parser::parse_Type() {
     if (peek().type == TokenType::KW_INT) {
@@ -201,13 +268,29 @@ void Parser::parse_Type() {
 
 
 void Parser::parse_Args() {
-    parse_Type();
+    std::string tkn_type = parse_Type_str();
+    Token tkn_id = peek();
     match(TokenType::IDENTIFIER);
+
+    //isso aq vai dar errado ja q podemos passar uma classe como argumento........ e por enquanto so tamo deixando variavel
+    bool success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+
+    if(!success){
+        throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme);
+    }
     
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
-        parse_Type();
+        tkn_type = parse_Type_str();
+        tkn_id = peek();
         match(TokenType::IDENTIFIER);
+
+        //isso aq vai dar errado pt.2 ja q podemos passar uma classe como argumento........ e por enquanto so tamo deixando variavel
+        success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+
+        if(!success){
+            throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme);
+        }
     }
 }
 
@@ -227,11 +310,13 @@ void Parser::parse_Lcom(){
 void Parser::parse_Cmd() {
     if(peek().type == TokenType::PUNC_LBRACE){
         match(TokenType::PUNC_LBRACE);
+        env.addTable();
 
         if(peek().type != TokenType::PUNC_RBRACE){
             parse_Lcom();
         }
         match(TokenType::PUNC_RBRACE);
+        env.voltar();
     }
     else if (peek().type == TokenType::KW_IF) {
         match(TokenType::KW_IF);
@@ -266,8 +351,14 @@ void Parser::parse_Cmd() {
     }
     // left factoring applied here
     else {
+        Token tkn_id = peek();
         match(TokenType::IDENTIFIER);
         
+        Symbol* symb = env.lookup(tkn_id.lexeme);
+        if(symb == nullptr){
+            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme);
+        }
+
         if (peek().type == TokenType::PUNC_LBRACKET) {
             match(TokenType::PUNC_LBRACKET);
             parse_Exp();
@@ -379,7 +470,14 @@ void Parser::parse_Pri_exp(){
         match(TokenType::KW_FALSE);
     }
     else if(peek().type == TokenType::IDENTIFIER){
+        Token tkn_id = peek();
         match(TokenType::IDENTIFIER);
+
+        Symbol* symb = env.lookup(tkn_id.lexeme);
+        if(symb == nullptr){
+            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme);
+        }
+
     }
     else if(peek().type == TokenType::NUMBER_LITERAL){
         match(TokenType::NUMBER_LITERAL);
@@ -396,9 +494,15 @@ void Parser::parse_Pri_exp(){
             match(TokenType::PUNC_RBRACKET);
         }
         else{
+            Token tkn_class = peek();
             match(TokenType::IDENTIFIER);
             match(TokenType::PUNC_LPARENT);
             match(TokenType::PUNC_RPARENT);
+
+            Symbol* symb = env.lookup(tkn_class.lexeme);
+            if(symb == nullptr || (*symb).kind != SymbolKind::CLASS){
+                throw_error("Classe não declarada: " + tkn_class.lexeme);
+            }
         }
     }
     else{

@@ -10,8 +10,8 @@
  */
 enum class SymbolKind {
     VARIABLE,
-    // METHOD,
-    // CLASS
+    METHOD,
+    CLASS
     // etc...?
 };
 

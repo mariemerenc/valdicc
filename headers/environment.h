@@ -11,6 +11,7 @@ class Environment{
     private:
     SymbolTable * root;
     SymbolTable * curr;
+    int scope;
 
     public:
     Environment();
@@ -27,6 +28,8 @@ class Environment{
     void voltar();
 
     void print_symbol_table(); //metodo p printar a tabela
+
+    int get_scope();
 };
 
 #endif
