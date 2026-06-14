@@ -3,38 +3,44 @@
 #include <stdexcept>
 
 Environment::Environment() {
-    pai = new SymbolTable();
-    curr = pai;
-};
+    root = new SymbolTable(nullptr);
+    curr = root;
+}
+
+Environment::~Environment(){
+    delete root;
+}
 
 void Environment::addTable() { // ativar com base no escopo or something
-    SymbolTable * novo = new SymbolTable;
-    
+    SymbolTable * novo = new SymbolTable(curr);
+
     (*curr).addFilhos(novo);
     curr = novo;
 }
 
 void Environment::voltar() {
-    curr = (*curr).getPrev();
+    if(curr != nullptr && (*curr).getPrev() != nullptr){
+        curr = (*curr).getPrev();
+    }   
 }
 
 bool Environment::insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column) {
 
     return (*curr).insert(name, type, kind, scope, line, column);
-    
+
 }
 
 Symbol * Environment::lookup(const std::string& name) {
     for (auto a = curr; ; a = (*a).getPrev()) {
 
-        if ((*a).getSymbolTable().count(name) != 0) {
-            return &(*a).getSymbolTable()[name];
+        if ((*a).lookup(name) != nullptr) {
+            return (*a).lookup(name);
         }
 
-        if (a == pai) {
+        if (a == root) {
             break;
         }
     }
     
-    
+    return nullptr;
 }

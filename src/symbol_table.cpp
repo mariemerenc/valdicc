@@ -2,12 +2,24 @@
 #include "../headers/environment.h"
 #include <stdexcept>
 
+SymbolTable::SymbolTable(SymbolTable * prev_table) : prev{prev_table} {};
+
+SymbolTable::~SymbolTable(){
+    for(SymbolTable* f : filhos){
+        delete f;
+    }
+}
+
 SymbolTable * SymbolTable::getPrev() {
     return prev;
 }
 
 std::unordered_map<std::string, Symbol> SymbolTable::getSymbolTable() {
     return symbol_table;
+}
+
+std::vector<SymbolTable *> SymbolTable::getFilhos(){
+    return filhos;
 }
 
 void SymbolTable::addFilhos(SymbolTable * filho) {
@@ -27,4 +39,5 @@ Symbol * SymbolTable::lookup(const std::string& name) {
     if (symbol_table.count(name) != 0) {
         return &symbol_table[name];
     }
+    return nullptr;
 }

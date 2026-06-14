@@ -9,11 +9,13 @@
 
 class Environment{
     private:
-    SymbolTable * pai;
+    SymbolTable * root;
     SymbolTable * curr;
 
     public:
     Environment();
+
+    ~Environment();
 
     bool insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column); // bool pq vai retornar false se por exemplo uma mesma variavel for declarada duas vezes no mesmo escopo 
 
