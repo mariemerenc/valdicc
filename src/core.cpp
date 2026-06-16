@@ -45,11 +45,19 @@ void Core::run(){
         }
     }
 
-    SymbolTable table; //ta vazia
-    Parser parser(tokens, table, m_running_opts);
+    Parser parser(tokens, m_running_opts);
 
     try{
         parser.parse();
+
+        if(m_running_opts.symbtable_output){
+            std::ofstream symb_outfile{m_running_opts.symbtable_output_file_path};
+
+            if(symb_outfile.is_open()){
+                parser.getEnv().print_symbol_table(symb_outfile);
+                symb_outfile.close();
+            }
+        }
     }
     catch(const exception& e){
         cerr << "[ERRO SINTÁTICO] " << e.what() << '\n';

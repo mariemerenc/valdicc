@@ -29,7 +29,7 @@ class SymbolTable{
 
     Symbol* lookup(const std::string& name); //eh a funcao de busca na tabela
 
-    void print_local_symbol_table(); //metodo p printar a tabela
+    void print_local_symbol_table(int indent, std::ostream& out); //metodo p printar a tabela
 };
 
 #endif

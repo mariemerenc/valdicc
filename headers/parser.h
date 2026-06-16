@@ -33,6 +33,8 @@ class Parser{
      */
     void parse();
 
+    Environment& getEnv(){return env;}
+
     private:
     std::vector<Token> tokens;  ///< Token stream provided by the lexer
     size_t lookahead = 0;       ///< Current index pointing to the token being analyzed

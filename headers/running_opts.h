@@ -18,6 +18,8 @@ struct RunningOptions{
     /** @brief Flag indicating whether the preprocessor output should be exported to a file.*/
     bool clean_output = false;
 
+    bool symbtable_output = false;
+
     /** @brief Path to the file where the Lexer output will be saved.*/
     std::string lexer_output_file_path = "";
     
@@ -27,4 +29,6 @@ struct RunningOptions{
     bool stop_on_first_error = false;
 
     bool suggest_corrections = false;
+
+    std::string symbtable_output_file_path = "";
 };

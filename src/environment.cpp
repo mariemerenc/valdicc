@@ -1,6 +1,8 @@
 #include "../headers/symbol_table.h"
 #include "../headers/environment.h"
 #include <stdexcept>
+#include <stack>
+#include <utility>
 
 Environment::Environment() {
     root = new SymbolTable(nullptr);
@@ -50,4 +52,31 @@ Symbol * Environment::lookup(const std::string& name) {
 
 int Environment::get_scope(){
     return scope;
+}
+
+void Environment::print_symbol_table(std::ostream& out){
+    out << "ÁRVORE DA TABELA DE SÍMBOLOS\n\n";
+
+    if(root == nullptr){
+        return;
+    }
+
+    std::stack<std::pair<SymbolTable*, int>> p;
+
+    p.push({root, 0});
+
+    while(!p.empty()){
+        auto [curr_node, scope] = p.top();
+        p.pop();
+
+        (*curr_node).print_local_symbol_table(scope, out);
+        
+        std::vector<SymbolTable*> filhos = (*curr_node).getFilhos();
+
+        for(auto it = filhos.rbegin(); it != filhos.rend(); it++){
+            p.push({*it, scope+1});
+        }
+
+        out << '\n';
+    }
 }

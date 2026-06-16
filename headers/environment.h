@@ -6,6 +6,7 @@
 #include "symbol.h"
 #include "symbol_table.h"
 #include <vector>
+#include <ostream>
 
 class Environment{
     private:
@@ -27,7 +28,7 @@ class Environment{
 
     void voltar();
 
-    void print_symbol_table(); //metodo p printar a tabela
+    void print_symbol_table(std::ostream& out); //metodo p printar a tabela
 
     int get_scope();
 };
