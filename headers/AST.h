@@ -14,10 +14,10 @@ public:
 
 class ExprNode : public ASTNode{
 protected:
-    enum ExprType{
-        INT, FLOAT, BOOL, ID
-    };
-    ExprType type;
+    enum class ExprType{
+        INT, BOOL, ID, INT_ARR
+    } type;
+    void* val;
     size_t n_array; //if 0, it's a plain value. other wise is an n-dimensional array
 };
 
@@ -94,20 +94,28 @@ namespace node_types{
     };
     class AddExpr : public ExprNode{
         int64_t val;
-        string op;
+        enum class Operation{
+            SUM,
+            SUB,
+        } op;
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
     };
     class MulDivExpr : public ExprNode{
         int64_t val;
-        string op;
+        enum class Operation{
+            MUL,
+            DIV,
+        } op;
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
+        
     };
     class NegateExpr : public ExprNode{
         bool is_negated;
         unique_ptr<ExprNode> lhs;
     };
+    //Psfexp in the described language syntax
     class PrimaryAccessExpr : public ExprNode{
         unique_ptr<ExprNode> lhs;
         vector<unique_ptr<ExprNode>> access_expr;
@@ -115,20 +123,29 @@ namespace node_types{
             LENGTH,
             ARRAY_ACCESS,
             CLASS_CONSTRUCT,
+            METHOD_CALL,
         };
         PEModifier expr_kind;
+        vector<unique_ptr<ExprNode>> list_expression;//expression list for the method call
     };
     class PrimaryExpr : public ExprNode{
         unique_ptr<ExprNode> expr;
     };
     class TrueFalseLiteral : public ExprNode{
-        bool val;
+        bool bool_val;
         TrueFalseLiteral(bool v){
-            val = v;
-            type = BOOL;
+            bool_val = v;
+            type = ExprType::BOOL;
         }
     };
     class NumLiteral : public ExprNode{
-        int64_t val;
+        int64_t int_val;
+        NumLiteral(int64_t v){
+            int_val = v;
+            type = ExprType::INT;
+        }
+    };
+    class IdLiteral : public ExprNode{
+        //has to have the symbol table implemented
     };
 }
