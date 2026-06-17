@@ -1,5 +1,6 @@
 #include "../headers/parser.h"
 #include "../headers/usefultools.h"
+#include <memory>
 #include <stdexcept>
 #include <limits.h>
 using namespace std;
@@ -82,7 +83,7 @@ void Parser::match(TokenType expected_type, const string& custom_msg){
 }
 
 
-void Parser::parse(){
+AST Parser::parse(){
     parse_Prog();
 
     if(lookahead < tokens.size() && peek().type != TokenType::END_OF_FILE){
@@ -91,13 +92,13 @@ void Parser::parse(){
 }
 
 
-void Parser::parse_Prog(){
+unique_ptr<node_types::ProgNode> Parser::parse_Prog(){
     parse_MainC();
     parse_DefCl();
 }
 
 
-void Parser::parse_MainC(){
+unique_ptr<node_types::MainDecl> Parser::parse_MainC(){
     //class ABC { 
     match(TokenType::KW_CLASS);
     match(TokenType::IDENTIFIER);
@@ -121,7 +122,7 @@ void Parser::parse_MainC(){
 }
 
 
-void Parser::parse_DefCl(){
+unique_ptr<node_types::ClassDecl> Parser::parse_DefCl(){
     while(peek().type == TokenType::KW_CLASS){
         match(TokenType::KW_CLASS);
         match(TokenType::IDENTIFIER);
@@ -139,7 +140,7 @@ void Parser::parse_DefCl(){
 }
 
 
-void Parser::parse_DefVar() {
+unique_ptr<node_types::VarDecl> Parser::parse_DefVar() {
     // Uses lookahead (peek_next) to resolve structural ambiguity.
     while ( peek().type == TokenType::KW_INT ||
             peek().type == TokenType::KW_BOOLEAN ||
@@ -151,7 +152,7 @@ void Parser::parse_DefVar() {
 }
 
 
-void Parser::parse_DefMet() {
+unique_ptr<node_types::MethodDecl> Parser::parse_DefMet() {
     while(peek().type == TokenType::KW_PUBLIC){
         match(TokenType::KW_PUBLIC);
         parse_Type();
@@ -180,7 +181,7 @@ void Parser::parse_DefMet() {
 }
 
 
-void Parser::parse_Type() {
+unique_ptr<ExprNode::ExprType> Parser::parse_Type() {
     if (peek().type == TokenType::KW_INT) {
         match(TokenType::KW_INT);
 
@@ -200,7 +201,7 @@ void Parser::parse_Type() {
 }
 
 
-void Parser::parse_Args() {
+vector<unique_ptr<node_types::VarDecl>> Parser::parse_Args() {
     parse_Type();
     match(TokenType::IDENTIFIER);
     
@@ -211,7 +212,7 @@ void Parser::parse_Args() {
     }
 }
 
-void Parser::parse_Lcom(){
+vector<unique_ptr<node_types::CommandDecl>> Parser::parse_Lcom(){
     parse_Cmd();
 
     // { agindo como um iniciador de comando para resolver bugs de if { exp } ou if exp 
@@ -224,7 +225,7 @@ void Parser::parse_Lcom(){
             }
 }
 
-void Parser::parse_Cmd() {
+unique_ptr<node_types::CommandDecl> Parser::parse_Cmd() {
     if(peek().type == TokenType::PUNC_LBRACE){
         match(TokenType::PUNC_LBRACE);
 
@@ -280,11 +281,11 @@ void Parser::parse_Cmd() {
     }
 }
 
-void Parser::parse_Exp() {
+unique_ptr<ExprNode> Parser::parse_Exp() {
     parse_And_exp();
 }
 
-void Parser::parse_And_exp(){
+unique_ptr<node_types::AndExpr> Parser::parse_And_exp(){
     parse_Rel_exp();
 
     while(peek().type == TokenType::OP_AND){
@@ -293,7 +294,7 @@ void Parser::parse_And_exp(){
     }
 }
 
-void Parser::parse_Rel_exp(){
+unique_ptr<node_types::RelExpr> Parser::parse_Rel_exp(){
     parse_Add_exp();
 
     while(peek().type == TokenType::OP_GREATER){
@@ -302,7 +303,7 @@ void Parser::parse_Rel_exp(){
     }
 }
 
-void Parser::parse_Add_exp(){
+unique_ptr<node_types::AddExpr> Parser::parse_Add_exp(){
     parse_Mul_exp();
 
     while(peek().type == TokenType::OP_PLUS || peek().type == TokenType::OP_MINUS){
@@ -316,7 +317,7 @@ void Parser::parse_Add_exp(){
     }
 }
 
-void Parser::parse_Mul_exp(){
+unique_ptr<node_types::MulDivExpr> Parser::parse_Mul_exp(){
     parse_Un_exp();
 
     while(peek().type == TokenType::OP_ASTERISK){
@@ -325,7 +326,7 @@ void Parser::parse_Mul_exp(){
     }
 }
 
-void Parser::parse_Un_exp(){
+unique_ptr<node_types::NegateExpr> Parser::parse_Un_exp(){
     if(peek().type == TokenType::OP_NOT){
         match(TokenType::OP_NOT);
         parse_Un_exp();
@@ -335,7 +336,7 @@ void Parser::parse_Un_exp(){
     }
 }
 
-void Parser::parse_Psf_exp(){
+unique_ptr<node_types::PrimaryAccessExpr> Parser::parse_Psf_exp(){
     parse_Pri_exp();
 
     while(peek().type == TokenType::PUNC_LBRACKET || peek().type == TokenType::PUNC_DOT){
@@ -366,7 +367,7 @@ void Parser::parse_Psf_exp(){
     }
 }
 
-void Parser::parse_Pri_exp(){
+unique_ptr<node_types::PrimaryExpr> Parser::parse_Pri_exp(){
     if(peek().type == TokenType::PUNC_LPARENT){
         match(TokenType::PUNC_LPARENT);
         parse_Exp();
@@ -406,10 +407,12 @@ void Parser::parse_Pri_exp(){
     }
 }
 
-void Parser::parse_ListExp() {
-    parse_Exp();
+vector<unique_ptr<ExprNode>> Parser::parse_ListExp() {
+    vector<unique_ptr<ExprNode>> ret_vec;
+    ret_vec.push_back(parse_Exp());
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
-        parse_Exp();
+        ret_vec.push_back(parse_Exp());
     }
+    return ret_vec;
 }

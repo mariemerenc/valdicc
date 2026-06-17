@@ -1,9 +1,11 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <memory>
 #include <vector>
 #include <map>
 #include <string>
+#include "AST.h"
 #include "token.h"
 #include "symbol_table.h"
 #include "running_opts.h"
@@ -28,9 +30,10 @@ class Parser{
      * @brief Initiates the parsing process.
      * * Acts as the main entry point for syntax analysis, starting from the
      * root production rule (Prog) and ensuring the entire token stream is consumed.
+     * * @returns the abstract syntax tree
      * * @throws runtime_error If extra tokens are found after the end of the program. 
      */
-    void parse();
+    AST parse();
 
     private:
     std::vector<Token> tokens;  ///< Token stream provided by the lexer
@@ -74,43 +77,43 @@ class Parser{
     /*==============================[GRAMMAR PRODUCTION RULES]==============================*/
     
     /** @brief Parses the root program structure. */
-    void parse_Prog();
+    unique_ptr<node_types::ProgNode> parse_Prog();
 
     /** @brief Parses the main class and its method signature. */
-    void parse_MainC();
+    unique_ptr<node_types::MainDecl> parse_MainC();
 
     /** @brief Parses the class declaration and inheritances. */
-    void parse_DefCl();
+    unique_ptr<node_types::ClassDecl> parse_DefCl();
 
     /** @brief Parses variable declarations. */
-    void parse_DefVar();
+    unique_ptr<node_types::VarDecl> parse_DefVar();
 
     /** @brief Parses method signatures and bodies. */
-    void parse_DefMet();
+    unique_ptr<node_types::MethodDecl> parse_DefMet();
 
     /** @brief Parses data types (int, boolean, identifiers and arrays). */
-    void parse_Type();
+    unique_ptr<ExprNode::ExprType> parse_Type();
 
     /** @brief Parses a list of arguments. */
-    void parse_Args();
+    vector<unique_ptr<node_types::VarDecl>> parse_Args();
 
     /** @brief Parses ... */
-    void parse_Lcom();
+    vector<unique_ptr<node_types::CommandDecl>> parse_Lcom();
     
     /** @brief Parses execution commands (if/else, while, assignments, print). */
-    void parse_Cmd();
+    unique_ptr<node_types::CommandDecl> parse_Cmd();
 
     /** @brief Parses a list of expressions (e.g., method call args). */
-    void parse_ListExp();
+    vector<unique_ptr<ExprNode>> parse_ListExp();
 
-    void parse_Exp();
-    void parse_And_exp();
-    void parse_Rel_exp();
-    void parse_Add_exp();
-    void parse_Mul_exp();
-    void parse_Un_exp();
-    void parse_Psf_exp();
-    void parse_Pri_exp();
+    unique_ptr<ExprNode> parse_Exp();
+    unique_ptr<node_types::AndExpr> parse_And_exp();
+    unique_ptr<node_types::RelExpr> parse_Rel_exp();
+    unique_ptr<node_types::AddExpr> parse_Add_exp();
+    unique_ptr<node_types::MulDivExpr> parse_Mul_exp();
+    unique_ptr<node_types::NegateExpr> parse_Un_exp();
+    unique_ptr<node_types::PrimaryAccessExpr> parse_Psf_exp();
+    unique_ptr<node_types::PrimaryExpr> parse_Pri_exp();
 };
 
 #endif

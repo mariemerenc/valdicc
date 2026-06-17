@@ -1,4 +1,8 @@
-TODO:
+# TODO FOR THE AST IMPLEMENTATION
+
+## Precisa terminar de refatorar o parse 
+
+## TODO:
 - formalizar a gramatica refatorada
 - aplicar first and follow na gramática
 - aplicar prioridades PEMDAS na gramatica

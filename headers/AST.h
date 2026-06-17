@@ -8,15 +8,18 @@
 namespace{ using std::vector, std::string, std::unique_ptr;}
 class ASTNode{
 public:
-    virtual string to_string() = 0;
+    ///TODO
+    virtual string to_string(){return "";}
 };
 
 
 class ExprNode : public ASTNode{
-protected:
+public:
     enum class ExprType{
         INT, BOOL, ID, INT_ARR
-    } type;
+    }; 
+protected:
+    ExprType type;
     void* val;
     size_t n_array; //if 0, it's a plain value. other wise is an n-dimensional array
 };
