@@ -77,43 +77,43 @@ class Parser{
     /*==============================[GRAMMAR PRODUCTION RULES]==============================*/
     
     /** @brief Parses the root program structure. */
-    unique_ptr<node_types::ProgNode> parse_Prog();
+    unique_ptr<ASTNode> parse_Prog();
 
     /** @brief Parses the main class and its method signature. */
-    unique_ptr<node_types::MainDecl> parse_MainC();
+    unique_ptr<ASTNode> parse_MainC();
 
     /** @brief Parses the class declaration and inheritances. */
-    unique_ptr<node_types::ClassDecl> parse_DefCl();
+    vector<unique_ptr<ASTNode>> parse_DefCl();
 
     /** @brief Parses variable declarations. */
-    unique_ptr<node_types::VarDecl> parse_DefVar();
+    vector<unique_ptr<ASTNode>> parse_DefVar();
 
     /** @brief Parses method signatures and bodies. */
-    unique_ptr<node_types::MethodDecl> parse_DefMet();
+    vector<unique_ptr<ASTNode>> parse_DefMet();
 
     /** @brief Parses data types (int, boolean, identifiers and arrays). */
-    unique_ptr<ExprNode::ExprType> parse_Type();
+    string parse_Type();
 
     /** @brief Parses a list of arguments. */
-    vector<unique_ptr<node_types::VarDecl>> parse_Args();
+    vector<unique_ptr<ASTNode>> parse_Args();
 
     /** @brief Parses ... */
-    vector<unique_ptr<node_types::CommandDecl>> parse_Lcom();
+    vector<unique_ptr<ASTNode>> parse_Lcom();
     
     /** @brief Parses execution commands (if/else, while, assignments, print). */
-    unique_ptr<node_types::CommandDecl> parse_Cmd();
+    unique_ptr<ASTNode> parse_Cmd();
 
     /** @brief Parses a list of expressions (e.g., method call args). */
     vector<unique_ptr<ExprNode>> parse_ListExp();
 
     unique_ptr<ExprNode> parse_Exp();
-    unique_ptr<node_types::AndExpr> parse_And_exp();
-    unique_ptr<node_types::RelExpr> parse_Rel_exp();
-    unique_ptr<node_types::AddExpr> parse_Add_exp();
-    unique_ptr<node_types::MulDivExpr> parse_Mul_exp();
-    unique_ptr<node_types::NegateExpr> parse_Un_exp();
-    unique_ptr<node_types::PrimaryAccessExpr> parse_Psf_exp();
-    unique_ptr<node_types::PrimaryExpr> parse_Pri_exp();
+    unique_ptr<ExprNode> parse_And_exp();
+    unique_ptr<ExprNode> parse_Rel_exp();
+    unique_ptr<ExprNode> parse_Add_exp();
+    unique_ptr<ExprNode> parse_Mul_exp();
+    unique_ptr<ExprNode> parse_Un_exp();
+    unique_ptr<ExprNode> parse_Psf_exp();
+    unique_ptr<ExprNode> parse_Pri_exp();
 };
 
 #endif

@@ -3,10 +3,13 @@
 #include <memory>
 #include <stdexcept>
 #include <limits.h>
+#include <vector>
 using namespace std;
 
 Parser::Parser(const std::vector<Token>& tokenss, SymbolTable& symbol_tablee, RunningOptions opts) : tokens{tokenss}, symbol_table{symbol_tablee}, m_running_opts{opts} { }
-
+using NodePtr = std::unique_ptr<ASTNode>;
+using NodeVec = std::vector<NodePtr>;
+using ExprNodePtr = std::unique_ptr<ExprNode>;
 
 Token Parser::peek(){
     if(lookahead >= tokens.size()){
@@ -84,24 +87,29 @@ void Parser::match(TokenType expected_type, const string& custom_msg){
 
 
 AST Parser::parse(){
-    parse_Prog();
+    
+    AST tree(parse_Prog());
 
     if(lookahead < tokens.size() && peek().type != TokenType::END_OF_FILE){
         throw_error("Presença de tokens após EOF.");
     }
+    return tree;
 }
 
 
-unique_ptr<node_types::ProgNode> Parser::parse_Prog(){
-    parse_MainC();
-    parse_DefCl();
+NodePtr Parser::parse_Prog(){
+    auto m = parse_MainC();
+    auto d = parse_DefCl();
+    auto p = make_unique<node_types::ProgNode>(std::move(m), std::move(d));
+    return p;
 }
 
 
-unique_ptr<node_types::MainDecl> Parser::parse_MainC(){
+NodePtr Parser::parse_MainC(){
     //class ABC { 
     match(TokenType::KW_CLASS);
     match(TokenType::IDENTIFIER);
+    string main_class_id = previous().lexeme;
     match(TokenType::PUNC_LBRACE);
 
     //public static void main(String[] args) {
@@ -114,97 +122,118 @@ unique_ptr<node_types::MainDecl> Parser::parse_MainC(){
     match(TokenType::PUNC_LBRACKET);
     match(TokenType::PUNC_RBRACKET);
     match(TokenType::IDENTIFIER);
+    string args_id = previous().lexeme;
     match(TokenType::PUNC_RPARENT);
     match(TokenType::PUNC_LBRACE);
-    parse_Lcom();
+    auto command_list = parse_Lcom();
     match(TokenType::PUNC_RBRACE);
     match(TokenType::PUNC_RBRACE);
+    return std::make_unique<node_types::MainDecl>(main_class_id, args_id, std::move(command_list));
 }
 
 
-unique_ptr<node_types::ClassDecl> Parser::parse_DefCl(){
+NodeVec Parser::parse_DefCl(){
+    NodeVec class_definitions;
     while(peek().type == TokenType::KW_CLASS){
         match(TokenType::KW_CLASS);
         match(TokenType::IDENTIFIER);
-
+        string class_id = previous().lexeme;
+        bool extends = false;
+        string extends_id = "";
         if(peek().type == TokenType::KW_EXTENDS){
             match(TokenType::KW_EXTENDS);
             match(TokenType::IDENTIFIER);
+            extends = true;
+            extends_id = previous().lexeme;
         }
-
         match(TokenType::PUNC_LBRACE);
-        parse_DefVar();
-        parse_DefMet();
+        NodeVec vars(parse_DefVar());
+        NodeVec methods(parse_DefMet());
         match(TokenType::PUNC_RBRACE);
+        class_definitions.push_back(std::make_unique<node_types::ClassDecl>(class_id, std::move(vars),
+                                     std::move(methods), extends, extends_id));
     }
+    return class_definitions;
 }
 
 
-unique_ptr<node_types::VarDecl> Parser::parse_DefVar() {
+NodeVec Parser::parse_DefVar() {
     // Uses lookahead (peek_next) to resolve structural ambiguity.
+    NodeVec vars;
     while ( peek().type == TokenType::KW_INT ||
             peek().type == TokenType::KW_BOOLEAN ||
             (peek().type == TokenType::IDENTIFIER && peek_next().type == TokenType::IDENTIFIER)){
-        parse_Type();
+        string type = parse_Type();
         match(TokenType::IDENTIFIER);
+        string id = previous().lexeme;
         match(TokenType::PUNC_SEMICOLON);
+        vars.push_back(std::make_unique<node_types::VarDecl>(type, id));
     }
+    return vars;
 }
 
 
-unique_ptr<node_types::MethodDecl> Parser::parse_DefMet() {
+NodeVec Parser::parse_DefMet() {
+    NodeVec methods;
     while(peek().type == TokenType::KW_PUBLIC){
         match(TokenType::KW_PUBLIC);
-        parse_Type();
+        auto type = parse_Type();
         match(TokenType::IDENTIFIER);
+        string id = previous().lexeme;
         match(TokenType::PUNC_LPARENT);
+        NodeVec args;
         if(peek().type != TokenType::PUNC_RPARENT){
-            parse_Args();
+            args = parse_Args();
         }
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_LBRACE);
-        parse_DefVar();
-        
+        NodeVec vars = parse_DefVar();
+        NodeVec commands;
         while ( peek().type == TokenType::IDENTIFIER ||
                 peek().type == TokenType::KW_IF ||
                 peek().type == TokenType::KW_WHILE ||
                 peek().type == TokenType::KW_SYSTEM || 
                 peek().type == TokenType::PUNC_LBRACE){
-                parse_Cmd();
+                commands.push_back(parse_Cmd());
             }
-
         match(TokenType::KW_RETURN);
-        parse_Exp();
+        ExprNodePtr expr = parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
         match(TokenType::PUNC_RBRACE);
+        methods.push_back(std::make_unique<node_types::MethodDecl>(id, type, std::move(args), std::move(commands), std::move(expr)));
     }
+    return methods;
 }
 
 
-unique_ptr<ExprNode::ExprType> Parser::parse_Type() {
+string Parser::parse_Type() {
     if (peek().type == TokenType::KW_INT) {
         match(TokenType::KW_INT);
-
         if (peek().type == TokenType::PUNC_LBRACKET) {
             match(TokenType::PUNC_LBRACKET);
             match(TokenType::PUNC_RBRACKET);
+            return "int[]";
         }
+        return "int";
     }
 
     else if (peek().type == TokenType::KW_BOOLEAN) {
         match(TokenType::KW_BOOLEAN);
+        return "bool";
     }
 
     else {
         match(TokenType::IDENTIFIER);
+        return previous().lexeme;
     }
 }
 
 
-vector<unique_ptr<node_types::VarDecl>> Parser::parse_Args() {
-    parse_Type();
+NodeVec Parser::parse_Args() {
+    NodeVec args;
+    auto first_type = parse_Type();
     match(TokenType::IDENTIFIER);
-    
+    auto first_id = previous().lexeme;
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
         parse_Type();
@@ -212,8 +241,9 @@ vector<unique_ptr<node_types::VarDecl>> Parser::parse_Args() {
     }
 }
 
-vector<unique_ptr<node_types::CommandDecl>> Parser::parse_Lcom(){
-    parse_Cmd();
+NodeVec Parser::parse_Lcom(){
+    NodeVec commands;
+    commands.push_back(parse_Cmd());
 
     // { agindo como um iniciador de comando para resolver bugs de if { exp } ou if exp 
     while ( peek().type == TokenType::IDENTIFIER ||
@@ -221,11 +251,12 @@ vector<unique_ptr<node_types::CommandDecl>> Parser::parse_Lcom(){
             peek().type == TokenType::KW_WHILE ||
             peek().type == TokenType::KW_SYSTEM || 
             peek().type == TokenType::PUNC_LBRACE){
-                parse_Cmd();
-            }
+        commands.push_back(parse_Cmd());
+    }
+    return commands;
 }
 
-unique_ptr<node_types::CommandDecl> Parser::parse_Cmd() {
+NodePtr Parser::parse_Cmd() {
     if(peek().type == TokenType::PUNC_LBRACE){
         match(TokenType::PUNC_LBRACE);
 
@@ -281,11 +312,11 @@ unique_ptr<node_types::CommandDecl> Parser::parse_Cmd() {
     }
 }
 
-unique_ptr<ExprNode> Parser::parse_Exp() {
+ExprNodePtr Parser::parse_Exp() {
     parse_And_exp();
 }
 
-unique_ptr<node_types::AndExpr> Parser::parse_And_exp(){
+ExprNodePtr Parser::parse_And_exp(){
     parse_Rel_exp();
 
     while(peek().type == TokenType::OP_AND){
@@ -294,7 +325,7 @@ unique_ptr<node_types::AndExpr> Parser::parse_And_exp(){
     }
 }
 
-unique_ptr<node_types::RelExpr> Parser::parse_Rel_exp(){
+ExprNodePtr Parser::parse_Rel_exp(){
     parse_Add_exp();
 
     while(peek().type == TokenType::OP_GREATER){
@@ -303,7 +334,7 @@ unique_ptr<node_types::RelExpr> Parser::parse_Rel_exp(){
     }
 }
 
-unique_ptr<node_types::AddExpr> Parser::parse_Add_exp(){
+ExprNodePtr Parser::parse_Add_exp(){
     parse_Mul_exp();
 
     while(peek().type == TokenType::OP_PLUS || peek().type == TokenType::OP_MINUS){
@@ -317,7 +348,7 @@ unique_ptr<node_types::AddExpr> Parser::parse_Add_exp(){
     }
 }
 
-unique_ptr<node_types::MulDivExpr> Parser::parse_Mul_exp(){
+ExprNodePtr Parser::parse_Mul_exp(){
     parse_Un_exp();
 
     while(peek().type == TokenType::OP_ASTERISK){
@@ -326,7 +357,7 @@ unique_ptr<node_types::MulDivExpr> Parser::parse_Mul_exp(){
     }
 }
 
-unique_ptr<node_types::NegateExpr> Parser::parse_Un_exp(){
+ExprNodePtr Parser::parse_Un_exp(){
     if(peek().type == TokenType::OP_NOT){
         match(TokenType::OP_NOT);
         parse_Un_exp();
@@ -336,7 +367,7 @@ unique_ptr<node_types::NegateExpr> Parser::parse_Un_exp(){
     }
 }
 
-unique_ptr<node_types::PrimaryAccessExpr> Parser::parse_Psf_exp(){
+ExprNodePtr Parser::parse_Psf_exp(){
     parse_Pri_exp();
 
     while(peek().type == TokenType::PUNC_LBRACKET || peek().type == TokenType::PUNC_DOT){
@@ -367,7 +398,7 @@ unique_ptr<node_types::PrimaryAccessExpr> Parser::parse_Psf_exp(){
     }
 }
 
-unique_ptr<node_types::PrimaryExpr> Parser::parse_Pri_exp(){
+ExprNodePtr Parser::parse_Pri_exp(){
     if(peek().type == TokenType::PUNC_LPARENT){
         match(TokenType::PUNC_LPARENT);
         parse_Exp();
@@ -407,8 +438,8 @@ unique_ptr<node_types::PrimaryExpr> Parser::parse_Pri_exp(){
     }
 }
 
-vector<unique_ptr<ExprNode>> Parser::parse_ListExp() {
-    vector<unique_ptr<ExprNode>> ret_vec;
+vector<ExprNodePtr> Parser::parse_ListExp() {
+    vector<ExprNodePtr> ret_vec;
     ret_vec.push_back(parse_Exp());
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);

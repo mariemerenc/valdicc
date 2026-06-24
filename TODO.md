@@ -1,7 +1,20 @@
-# TODO FOR THE AST IMPLEMENTATION
+# TODO DA IMPLEMENTAÇÃO DA ÁRVORE SINTÁTICA
 
-## Precisa terminar de refatorar o parse 
+## 1. Precisa terminar de refatorar o parse 
 
+### A. Finalizar o parse command
+### B. Finalizar o parse das expressões
+
+## 2. Merge com as mudanças da tabela de símbolos
+
+## 3. Precisa realizar a visita na árvore para fazer a análise estática de tipo e de valores.
+
+## 4. Precisa fazer o print da AST sobrecarregando o método to_string de todos os nós
+
+
+
+
+## Precisa
 ## TODO:
 - formalizar a gramatica refatorada
 - aplicar first and follow na gramática
