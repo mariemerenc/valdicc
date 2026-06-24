@@ -11,15 +11,14 @@ class SymbolTable{
     SymbolTable * prev;
     std::vector <SymbolTable *> filhos;
     std::unordered_map<std::string, Symbol> symbol_table; // a tabela de simbolos. eh um mapa em que chave = nome do simbolo, valor = simbolo
+    std::string scope_label;
 
     public:
-    SymbolTable(SymbolTable * prev_table);
+    SymbolTable(SymbolTable * prev_table, const std::string& label);
 
     ~SymbolTable();
 
     SymbolTable * getPrev();
-
-    std::unordered_map<std::string, Symbol> getSymbolTable();
 
     std::vector<SymbolTable *> getFilhos();
 

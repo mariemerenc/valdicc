@@ -47,6 +47,7 @@ struct Symbol{
      * * Initializes positional and scope metadata to zero.
      */
     Symbol(){
+        kind = SymbolKind::VARIABLE;
         scope = 0;
         line = 0;
         column = 0;

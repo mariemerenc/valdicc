@@ -31,10 +31,12 @@ Token Parser::previous(){
 }
 
 
-void Parser::throw_error(const std::string& msg){
+void Parser::throw_error(const std::string& msg, ErrorPhase phase){
     Token curr_token = peek();
 
-    string full_msg = "Erro na linha " +
+    string label = (phase == ErrorPhase::SEMANTIC) ? "[ERRO SEMÂNTICO]" : "[ERRO SINTÁTICO]";
+
+    string full_msg = label + " Na linha " +
                     to_string(curr_token.line) +
                     ", coluna " +
                     to_string(curr_token.column) + 
@@ -104,7 +106,7 @@ void Parser::parse_MainC(){
     match(TokenType::IDENTIFIER);
     env.insert(tkn_class.lexeme, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
     match(TokenType::PUNC_LBRACE);
-    env.addTable();
+    env.addTable("classe " + tkn_class.lexeme);
 
     //public static void main(String[] args) {
     match(TokenType::KW_PUBLIC);
@@ -112,7 +114,7 @@ void Parser::parse_MainC(){
     match(TokenType::KW_VOID);
     match(TokenType::KW_MAIN);
 
-    env.addTable();
+    env.addTable("main");
 
     match(TokenType::PUNC_LPARENT);
     match(TokenType::KW_STRING);
@@ -150,11 +152,11 @@ void Parser::parse_DefCl(){
         bool success = env.insert(tkn_class.lexeme, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
 
         if(!success){
-            throw_error("Classe já declarada: " + tkn_class.lexeme);
+            throw_error("Classe já declarada: " + tkn_class.lexeme, ErrorPhase::SEMANTIC);
         }
 
         match(TokenType::PUNC_LBRACE);
-        env.addTable();
+        env.addTable("classe " + tkn_class.lexeme);
         parse_DefVar();
         parse_DefMet();
         match(TokenType::PUNC_RBRACE);
@@ -175,7 +177,7 @@ void Parser::parse_DefVar() {
         bool success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
 
         if(!success){
-            throw_error("Variável já declarada neste escopo: " + tkn_id.lexeme);
+            throw_error("Variável já declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
         match(TokenType::PUNC_SEMICOLON);
     }
@@ -194,10 +196,10 @@ void Parser::parse_DefMet() {
         bool success = env.insert(tkn_met.lexeme, tkn_return_type, SymbolKind::METHOD, env.get_scope(), tkn_met.line, tkn_met.column);
 
         if(!success){
-            throw_error("Método já declarado: " + tkn_met.lexeme);
+            throw_error("Método já declarado: " + tkn_met.lexeme, ErrorPhase::SEMANTIC);
         }
 
-        env.addTable();  // criar tabela antes de ler os args para as variaveis de parse_Args e parse_DefVar ficarem jutnas
+        env.addTable("método " + tkn_met.lexeme);  // criar tabela antes de ler os args para as variaveis de parse_Args e parse_DefVar ficarem jutnas
 
         match(TokenType::PUNC_LPARENT);
         if(peek().type != TokenType::PUNC_RPARENT){
@@ -276,7 +278,7 @@ void Parser::parse_Args() {
     bool success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
 
     if(!success){
-        throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme);
+        throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
     }
     
     while(peek().type == TokenType::PUNC_COMMA){
@@ -289,7 +291,7 @@ void Parser::parse_Args() {
         success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
 
         if(!success){
-            throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme);
+            throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
     }
 }
@@ -310,7 +312,7 @@ void Parser::parse_Lcom(){
 void Parser::parse_Cmd() {
     if(peek().type == TokenType::PUNC_LBRACE){
         match(TokenType::PUNC_LBRACE);
-        env.addTable();
+        env.addTable("bloco");
 
         if(peek().type != TokenType::PUNC_RBRACE){
             parse_Lcom();
@@ -356,7 +358,7 @@ void Parser::parse_Cmd() {
         
         Symbol* symb = env.lookup(tkn_id.lexeme);
         if(symb == nullptr){
-            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme);
+            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
 
         if (peek().type == TokenType::PUNC_LBRACKET) {
@@ -475,7 +477,7 @@ void Parser::parse_Pri_exp(){
 
         Symbol* symb = env.lookup(tkn_id.lexeme);
         if(symb == nullptr){
-            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme);
+            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
 
     }
@@ -501,7 +503,7 @@ void Parser::parse_Pri_exp(){
 
             Symbol* symb = env.lookup(tkn_class.lexeme);
             if(symb == nullptr || (*symb).kind != SymbolKind::CLASS){
-                throw_error("Classe não declarada: " + tkn_class.lexeme);
+                throw_error("Classe não declarada: " + tkn_class.lexeme, ErrorPhase::SEMANTIC);
             }
         }
     }

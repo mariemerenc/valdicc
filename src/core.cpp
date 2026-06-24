@@ -60,6 +60,6 @@ void Core::run(){
         }
     }
     catch(const exception& e){
-        cerr << "[ERRO SINTÁTICO] " << e.what() << '\n';
+        cerr << e.what() << '\n';
     }
 }

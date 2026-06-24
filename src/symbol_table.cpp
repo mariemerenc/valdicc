@@ -5,8 +5,9 @@
 #include <ostream>
 #include <algorithm>
 #include <vector>
+#include <iomanip>
 
-SymbolTable::SymbolTable(SymbolTable * prev_table) : prev{prev_table} {};
+SymbolTable::SymbolTable(SymbolTable * prev_table, const std::string& label) : prev{prev_table}, scope_label{label} {};
 
 SymbolTable::~SymbolTable(){
     for(SymbolTable* f : filhos){
@@ -16,10 +17,6 @@ SymbolTable::~SymbolTable(){
 
 SymbolTable * SymbolTable::getPrev() {
     return prev;
-}
-
-std::unordered_map<std::string, Symbol> SymbolTable::getSymbolTable() {
-    return symbol_table;
 }
 
 std::vector<SymbolTable *> SymbolTable::getFilhos(){
@@ -49,12 +46,13 @@ Symbol * SymbolTable::lookup(const std::string& name) {
 void SymbolTable::print_local_symbol_table(int indent, std::ostream& out){
     std::string text_indent(indent*4, ' ');
     
-    out << text_indent << "[ESCOPO NÍVEL " << indent << "]\n"; 
+    out << text_indent << "[" << scope_label << "] " << "(escopo " << indent << ")"; 
 
     if(symbol_table.empty()){
-        out << text_indent << "~vazio~\n";
+        out << '\n' << text_indent << "~vazio~\n";
         return;
     }
+    out << '\n';
 
     std::vector<Symbol> sort_symb;
 
@@ -69,7 +67,8 @@ void SymbolTable::print_local_symbol_table(int indent, std::ostream& out){
     });
 
 
-    for(auto symb : sort_symb){
+    for(size_t i=0; i<sort_symb.size(); i++){
+        Symbol symb = sort_symb[i];
         std::string kind_str;
 
         switch(symb.kind){
@@ -87,11 +86,13 @@ void SymbolTable::print_local_symbol_table(int indent, std::ostream& out){
                 break;
         }
 
-        out << text_indent << "Lexeme: " << symb.name
-            << " | Type: " << symb.type
-            << " | Kind: " << kind_str
-            << " | Scope: " << symb.scope
-            << " | Line: " << symb.line
-            << " | Column: " << symb.column << '\n';
+        std::string branch = (i+1 == sort_symb.size()) ? "└─ " : "├─ ";
+
+        out << text_indent << branch << std::left
+            << std::setw(15) << symb.name // 15 eh um otimo tamanho max para lexemas.
+            << " | Type: " << std::setw(8) << symb.type
+            << " | Kind: " << std::setw(8) << kind_str // variable tem 8 letras, method tem 6 e class tem 5
+            << " | Line: " << std::setw(3) << symb.line // n acho q vai ter um arquivo com +999 linhas de codigo
+            << " | Column: " << std::setw(3) << symb.column << '\n';
     }
 }

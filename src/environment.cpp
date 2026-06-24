@@ -5,27 +5,24 @@
 #include <utility>
 
 Environment::Environment() {
-    root = new SymbolTable(nullptr);
+    root = new SymbolTable(nullptr, "escopo global");
     curr = root;
-    scope = 0;
 }
 
 Environment::~Environment(){
     delete root;
 }
 
-void Environment::addTable() { // ativar com base no escopo or something
-    SymbolTable * novo = new SymbolTable(curr);
+void Environment::addTable(const std::string& label) { // ativar com base no escopo or something
+    SymbolTable * novo = new SymbolTable(curr, label);
 
     (*curr).addFilhos(novo);
     curr = novo;
-    scope++;
 }
 
 void Environment::voltar() {
     if(curr != nullptr && (*curr).getPrev() != nullptr){
         curr = (*curr).getPrev();
-        scope--;
     }   
 }
 
@@ -51,7 +48,11 @@ Symbol * Environment::lookup(const std::string& name) {
 }
 
 int Environment::get_scope(){
-    return scope;
+    int depth = 0;
+    for(SymbolTable* t = curr; (*t).getPrev() != nullptr; t = (*t).getPrev()){
+        depth++;
+    }
+    return depth;
 }
 
 void Environment::print_symbol_table(std::ostream& out){

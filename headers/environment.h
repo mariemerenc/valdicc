@@ -12,7 +12,6 @@ class Environment{
     private:
     SymbolTable * root;
     SymbolTable * curr;
-    int scope;
 
     public:
     Environment();
@@ -24,7 +23,7 @@ class Environment{
     Symbol* lookup(const std::string& name); //eh a funcao de busca na tabela
 
     // adiciona novas tabelas de simbolos tal qual uma árvore
-    void addTable();
+    void addTable(const std::string& label);
 
     void voltar();
 

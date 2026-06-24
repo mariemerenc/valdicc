@@ -9,6 +9,8 @@
 #include "running_opts.h"
 #include "environment.h"
 
+enum class ErrorPhase {SYNTACTIC, SEMANTIC};
+
 /**
  * @class Parser 
  * @brief A predictive recursive descent parser for the language.
@@ -71,7 +73,7 @@ class Parser{
      * @brief Throws a runtime error interrupting the compilation process.
      * @param msg The error information to display alongside the line and column data.
      */
-    void throw_error(const std::string& msg); 
+    void throw_error(const std::string& msg, ErrorPhase phase = ErrorPhase::SYNTACTIC); 
 
 
     /*==============================[GRAMMAR PRODUCTION RULES]==============================*/
