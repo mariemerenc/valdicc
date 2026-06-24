@@ -11,13 +11,16 @@ class SymbolTable{
     SymbolTable * prev;
     std::vector <SymbolTable *> filhos;
     std::unordered_map<std::string, Symbol> symbol_table; // a tabela de simbolos. eh um mapa em que chave = nome do simbolo, valor = simbolo
+    std::string scope_label;
 
     public:
-    SymbolTable() {};
+    SymbolTable(SymbolTable * prev_table, const std::string& label);
+
+    ~SymbolTable();
 
     SymbolTable * getPrev();
 
-    std::unordered_map<std::string, Symbol> getSymbolTable();
+    std::vector<SymbolTable *> getFilhos();
 
     void addFilhos(SymbolTable * filho);
 
@@ -25,7 +28,7 @@ class SymbolTable{
 
     Symbol* lookup(const std::string& name); //eh a funcao de busca na tabela
 
-    void print_symbol_table(); //metodo p printar a tabela
+    void print_local_symbol_table(int indent, std::ostream& out); //metodo p printar a tabela
 };
 
 #endif
