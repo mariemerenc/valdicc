@@ -87,6 +87,21 @@ namespace node_types{
             class_decl = std::move(c);
             this->node_rule = NodeRule::PROG;
         }
+
+        string to_string(){
+            return "PROGRAM(" + std::to_string(class_decl.size()) + " class(es) + main)";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(main_decl != nullptr){
+                filhos.push_back(main_decl.get());
+            }
+            for(auto& c : class_decl){
+                filhos.push_back(c.get());
+            }
+            return filhos;
+        }
     };
      /**
      * @class MainDecl
@@ -139,6 +154,26 @@ namespace node_types{
             inherit_id = i_id;
             this->node_rule = NodeRule::CLASSDECL;
         }
+
+        string to_string(){
+            string s = "CLASS(" + class_id;
+            if(extends){
+                s += " extends " + inherit_id;
+            }
+            s += ")";
+            return s;
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            for(auto& v : variables){
+                filhos.push_back(v.get());
+            }
+            for(auto& m : methods){
+                filhos.push_back(m.get());
+            }
+            return filhos;
+        }
     };
     
      /**
@@ -158,6 +193,10 @@ namespace node_types{
             else is_array = false;
             
             this->node_rule = NodeRule::VARDECL;
+        }
+
+        string to_string(){
+            return "VAR(" + var_id + " : " + var_type + ")";
         }
     };
 
@@ -214,6 +253,17 @@ namespace node_types{
             command = std::move(c);
             this->node_rule = NodeRule::COMMANDDECL;
         }
+
+        string to_string(){
+            return "COMMAND";
+        }
+
+        vector<ASTNode*> getChildren(){
+            if(command != nullptr){
+                return {command.get()};
+            }
+            return {};
+        }
     };
 
      /**
@@ -234,6 +284,19 @@ namespace node_types{
             rhs = std::move(r_expr);
             this->node_rule = NodeRule::ASSIGNDECL;
         }
+
+        string to_string(){
+            string s = "ASSIGN(" + lhs_id;
+            if(is_array){
+                s += "[]";
+            }
+            s += " =)";
+            return s;
+        }
+
+        // vector<ASTNode*> getChildren(){
+        //     //// TODO!!!!
+        // }
     };
 
      /**
@@ -254,6 +317,18 @@ namespace node_types{
             else_command_list = std::move(e_c_list);
             this->node_rule = NodeRule::IFELSEDECL;
         }
+
+        string to_string(){
+            string s = "IF";
+            if(has_else){
+                s += "/ELSE";
+            }
+            return s;
+        }
+
+        // vector<ASTNode*> getChildren(){
+        //     ////// TODO!!!
+        // }
     };
 
      /**
@@ -270,6 +345,21 @@ namespace node_types{
             command_list = std::move(c_list);
             this->node_rule = NodeRule::WHILEDECL;
         }
+
+        string to_string(){
+            return "WHILE";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(while_exp != nullptr){
+                filhos.push_back(while_exp.get());
+            }
+            for(auto& c : command_list){
+                filhos.push_back(c.get());
+            }
+            return filhos;
+        }
     };
 
      /**
@@ -283,6 +373,17 @@ namespace node_types{
         PrintLn(unique_ptr<ExprNode> p_expr){
             print_exp = std::move(p_expr);
             this->node_rule = NodeRule::PRINTLN;
+        }
+
+        string to_string(){
+            return "PRINTLN";
+        }
+
+        vector<ASTNode*> getChildren(){
+            if(print_exp != nullptr){
+                return {print_exp.get()};
+            }
+            return {};
         }
     };
 
@@ -303,6 +404,17 @@ namespace node_types{
             type = ExprType::BOOL;
             this->node_rule = NodeRule::ANDEXPR;
         }
+
+        string to_string(){
+            return "AND(&&)";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(lhs != nullptr) filhos.push_back(lhs.get());
+            if(rhs != nullptr) filhos.push_back(rhs.get());
+            return filhos;
+        }
     };
 
      /**
@@ -322,6 +434,17 @@ namespace node_types{
             val = false;
             type = ExprType::BOOL;
             this->node_rule = NodeRule::RELEXPR;
+        }
+
+        string to_string(){
+            return "REL(>)";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(lhs != nullptr) filhos.push_back(lhs.get());
+            if(rhs != nullptr) filhos.push_back(rhs.get());
+            return filhos;
         }
 
     };
@@ -350,6 +473,17 @@ namespace node_types{
             type = ExprType::INT;
             this->node_rule = NodeRule::ADDEXPR;
         }
+
+        string to_string(){
+            return string("ADD(") + (op == Operation::SUM ? "+" : "-") + ")";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(lhs != nullptr) filhos.push_back(lhs.get());
+            if(rhs != nullptr) filhos.push_back(rhs.get());
+            return filhos;
+        }
     };
 
      /**
@@ -376,6 +510,17 @@ namespace node_types{
             type = ExprType::INT;
             this->node_rule = NodeRule::MULDIVEXPR;
         }
+
+        string to_string(){
+            return string("MUL(") + (op == Operation::MUL ? "*" : "/") + ")";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(lhs != nullptr) filhos.push_back(lhs.get());
+            if(rhs != nullptr) filhos.push_back(rhs.get());
+            return filhos;
+        }
         
     };
 
@@ -393,6 +538,17 @@ namespace node_types{
             lhs = std::move(left);
             type = ExprType::BOOL;
             this->node_rule = NodeRule::NEGATEEXPR;
+        }
+
+        string to_string(){
+            return is_negated ? "NOT(!)" : "NOT";
+        }
+
+        vector<ASTNode*> getChildren(){
+            if(lhs != nullptr){
+                return {lhs.get()};
+            }
+            return {};
         }
     };
 
@@ -469,6 +625,17 @@ namespace node_types{
             expr = std::move(inner);
             this->node_rule = NodeRule::PRIMARYEXPR;
         }
+
+        string to_string(){
+            return "PAREN()";
+        }
+
+        vector<ASTNode*> getChildren(){
+            if(expr != nullptr){
+                return {expr.get()};
+            }
+            return {};
+        }
     };
 
      /**
@@ -483,6 +650,10 @@ namespace node_types{
             bool_val = v;
             type = ExprType::BOOL;
             this->node_rule = NodeRule::TRUEFALSELITERAL;
+        }
+
+        string to_string(){
+            return bool_val ? "BOOL(true)" : "BOOL(false)";
         }
     };
 
@@ -499,6 +670,10 @@ namespace node_types{
             type = ExprType::INT;
             this->node_rule = NodeRule::NUMLITERAL;
         }
+
+        string to_string(){
+            return "NUM(" + std::to_string(int_val) + ")";
+        }
     };
 
      /**
@@ -514,6 +689,10 @@ namespace node_types{
             type = ExprType::ID;
             this->node_rule = NodeRule::IDLITERAL;
         }
+
+        string to_string(){
+            return "ID(" + id + ")";
+        }
         
     };
 
@@ -527,6 +706,10 @@ namespace node_types{
         ThisExpr(){
             type = ExprType::ID;
             this->node_rule = NodeRule::THISEXPR;
+        }
+
+        string to_string(){
+            return "THIS";
         }
     };
     
@@ -544,6 +727,10 @@ namespace node_types{
             type = ExprType::ID;
             this->node_rule = NodeRule::NEWOBJEXPR;
         }
+
+        string to_string(){
+            return "NEW(" + class_id + "())";
+        }
     };
 
      /**
@@ -559,6 +746,17 @@ namespace node_types{
             size_expr = std::move(size);
             type = ExprType::INT_ARR;
             this->node_rule = NodeRule::NEWARRAYEXPR;
+        }
+
+        string to_string(){
+            return "NEW(int[])";
+        }
+
+        vector<ASTNode*> getChildren(){
+            if(size_expr != nullptr){
+                return {size_expr.get()};
+            }
+            return {};
         }
     };
 }
