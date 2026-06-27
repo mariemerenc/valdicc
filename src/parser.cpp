@@ -36,6 +36,17 @@ Token Parser::previous(){
     return tokens[lookahead-1];
 }
 
+bool Parser::peek_Cmd(){
+    if ( peek().type == TokenType::IDENTIFIER ||
+            peek().type == TokenType::KW_IF ||
+            peek().type == TokenType::KW_WHILE ||
+            peek().type == TokenType::KW_SYSTEM){
+                return true;
+            }
+
+    return false;
+}
+
 
 void Parser::throw_error(const std::string& msg, ErrorPhase phase){
     Token curr_token = peek();
@@ -230,9 +241,8 @@ NodeVec Parser::parse_DefMet() {
         while ( peek().type == TokenType::IDENTIFIER ||
                 peek().type == TokenType::KW_IF ||
                 peek().type == TokenType::KW_WHILE ||
-                peek().type == TokenType::KW_SYSTEM ||
-                peek().type == TokenType::PUNC_LBRACE){
-            commands.push_back(parse_Cmd());
+                peek().type == TokenType::KW_SYSTEM){
+            commands = parse_Lcom();
         }
         match(TokenType::KW_RETURN);
         ExprNodePtr expr = parse_Exp();
@@ -301,12 +311,10 @@ NodeVec Parser::parse_Lcom(){
     NodeVec commands;
     commands.push_back(parse_Cmd());
 
-    // { agindo como um iniciador de comando para resolver bugs de if { exp } ou if exp
     while ( peek().type == TokenType::IDENTIFIER ||
             peek().type == TokenType::KW_IF ||
             peek().type == TokenType::KW_WHILE ||
-            peek().type == TokenType::KW_SYSTEM ||
-            peek().type == TokenType::PUNC_LBRACE){
+            peek().type == TokenType::KW_SYSTEM){
         commands.push_back(parse_Cmd());
     }
     return commands;
@@ -314,35 +322,38 @@ NodeVec Parser::parse_Lcom(){
 
 
 NodePtr Parser::parse_Cmd() {
-    if(peek().type == TokenType::PUNC_LBRACE){
-        match(TokenType::PUNC_LBRACE);
-        env.addTable("bloco");
-
-        if(peek().type != TokenType::PUNC_RBRACE){
-            parse_Lcom();
-        }
-        match(TokenType::PUNC_RBRACE);
-        env.voltar();
-    }
-    else if (peek().type == TokenType::KW_IF) {
-        match(TokenType::KW_IF);
+    if (peek().type == TokenType::KW_IF) {
+        match(TokenType::KW_IF); 
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        auto ifelse_exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
-        parse_Cmd();
+        match(TokenType::PUNC_LBRACE);
+        auto if_cmds = peek_Cmd() ? parse_Lcom() : NodeVec{};
+        match(TokenType::PUNC_RBRACE);
+        bool has_else = false;
+        NodeVec else_cmds = {};
 
         //I --> else { Lcom } | lambda
         if(peek().type == TokenType::KW_ELSE){
+            has_else = true;
             match(TokenType::KW_ELSE);
-            parse_Cmd();
+            match(TokenType::PUNC_LBRACE);
+            else_cmds = peek_Cmd() ? parse_Lcom() : NodeVec{};
+            match(TokenType::PUNC_RBRACE);
         }
+
+        return make_unique<node_types::IfElseDecl>(std::move(ifelse_exp), std::move(if_cmds), has_else, std::move(else_cmds));
     }
     else if (peek().type == TokenType::KW_WHILE) {
         match(TokenType::KW_WHILE);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        auto while_exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
-        parse_Cmd();
+        match(TokenType::PUNC_LBRACE);
+        auto while_cmds = peek_Cmd() ? parse_Lcom() : NodeVec{};
+        match(TokenType::PUNC_RBRACE);
+
+        return make_unique<node_types::WhileDecl>(std::move(while_exp), std::move(while_cmds));
     }
     else if (peek().type == TokenType::KW_SYSTEM) {
         match(TokenType::KW_SYSTEM);
@@ -351,9 +362,11 @@ NodePtr Parser::parse_Cmd() {
         match(TokenType::PUNC_DOT);
         match(TokenType::KW_PRINTLN);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        auto print_exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_SEMICOLON);
+
+        return make_unique<node_types::PrintLn>(std::move(print_exp));
     }
     // left factoring applied here
     else {
@@ -365,123 +378,147 @@ NodePtr Parser::parse_Cmd() {
             throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
 
+        bool is_array = false;
+        ExprNodePtr idx_exp = nullptr;
+
         if (peek().type == TokenType::PUNC_LBRACKET) {
+            is_array = true;
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp();
+            idx_exp = parse_Exp();
             match(TokenType::PUNC_RBRACKET);
         }
 
         match(TokenType::OP_ASSIGN);
-        parse_Exp();
+        auto rhs_exp = parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
+
+        return make_unique<node_types::AssignDecl>(tkn_id.lexeme, is_array, std::move(idx_exp), std::move(rhs_exp));
     }
-    return nullptr; // TODO: construir AssignDecl/IfElseDecl/WhileDecl/PrintLn
 }
 
 
 ExprNodePtr Parser::parse_Exp() {
     parse_And_exp();
-    return nullptr; // TODO: construir nós de expressão
+    return nullptr; 
 }
 
 ExprNodePtr Parser::parse_And_exp(){
-    parse_Rel_exp();
+    ExprNodePtr left = parse_Rel_exp();
 
     while(peek().type == TokenType::OP_AND){
         match(TokenType::OP_AND);
-        parse_Rel_exp();
+        ExprNodePtr right = parse_Rel_exp();
+        left = make_unique<node_types::AndExpr>(std::move(left), std::move(right));
     }
-    return nullptr;
+
+    return left;
 }
 
 ExprNodePtr Parser::parse_Rel_exp(){
-    parse_Add_exp();
+    ExprNodePtr left = parse_Add_exp();
 
     while(peek().type == TokenType::OP_GREATER){
         match(TokenType::OP_GREATER);
-        parse_Add_exp();
+        ExprNodePtr right = parse_Add_exp();
+        left = make_unique<node_types::RelExpr>(std::move(left), std::move(right));
     }
-    return nullptr;
+
+    return left;
 }
 
 ExprNodePtr Parser::parse_Add_exp(){
-    parse_Mul_exp();
+    ExprNodePtr left = parse_Mul_exp();
+    node_types::AddExpr::Operation op;
 
     while(peek().type == TokenType::OP_PLUS || peek().type == TokenType::OP_MINUS){
         if(peek().type == TokenType::OP_PLUS){
             match(TokenType::OP_PLUS);
+            op = node_types::AddExpr::Operation::SUM;
         }
         else{
             match(TokenType::OP_MINUS);
+            op = node_types::AddExpr::Operation::SUB;
         }
-        parse_Mul_exp();
+        ExprNodePtr right = parse_Mul_exp();
+        left = make_unique<node_types::AddExpr>(op, std::move(left), std::move(right));
     }
-    return nullptr;
+    return left;
 }
 
 ExprNodePtr Parser::parse_Mul_exp(){
-    parse_Un_exp();
+    ExprNodePtr left = parse_Un_exp();
 
     while(peek().type == TokenType::OP_ASTERISK){
         match(TokenType::OP_ASTERISK);
-        parse_Un_exp();
+        ExprNodePtr right = parse_Un_exp();
+        left = make_unique<node_types::MulDivExpr>(node_types::MulDivExpr::Operation::MUL, std::move(left), std::move(right));
     }
-    return nullptr;
+    return left;
 }
 
 ExprNodePtr Parser::parse_Un_exp(){
     if(peek().type == TokenType::OP_NOT){
         match(TokenType::OP_NOT);
-        parse_Un_exp();
+        ExprNodePtr un_exp_op = parse_Un_exp();
+
+        return make_unique<node_types::NegateExpr>(true, std::move(un_exp_op));
     }
     else{
-        parse_Psf_exp();
+        return parse_Psf_exp();
     }
-    return nullptr;
 }
 
 ExprNodePtr Parser::parse_Psf_exp(){
-    parse_Pri_exp();
+    ExprNodePtr left = parse_Pri_exp();
 
     while(peek().type == TokenType::PUNC_LBRACKET || peek().type == TokenType::PUNC_DOT){
         if(peek().type == TokenType::PUNC_LBRACKET){
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp();
+            vector<ExprNodePtr> access;
+            ExprNodePtr idx = parse_Exp();
+            access.push_back(std::move(idx));
             match(TokenType::PUNC_RBRACKET);
+            left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::ARRAY_ACCESS, std::move(access), vector<unique_ptr<ExprNode>>{});
         }
         else{
             match(TokenType::PUNC_DOT);
             //left factoring applied here
             if(peek().type == TokenType::KW_LENGTH){
                 match(TokenType::KW_LENGTH);
+                left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::LENGTH, vector<unique_ptr<ExprNode>>{}, vector<unique_ptr<ExprNode>>{});
             }
             else{
                 match(TokenType::IDENTIFIER);
+                string method_id = previous().lexeme;
                 match(TokenType::PUNC_LPARENT);
-
+                std::vector<unique_ptr<ExprNode>> args = {};
                 //handling zero argument function
                 if(peek().type != TokenType::PUNC_RPARENT){
-                    parse_ListExp();
+                    args = parse_ListExp();
                 }
 
                 match(TokenType::PUNC_RPARENT);
+                left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::METHOD_CALL, vector<unique_ptr<ExprNode>>{}, std::move(args));
             }
         }
     }
-    return nullptr;
+    return left;
 }
 
 ExprNodePtr Parser::parse_Pri_exp(){
     if(peek().type == TokenType::PUNC_LPARENT){
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        ExprNodePtr exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
+        return make_unique<node_types::PrimaryExpr>(std::move(exp));
     }
     else if(peek().type == TokenType::KW_TRUE){
         match(TokenType::KW_TRUE);
+        return make_unique<node_types::TrueFalseLiteral>(true);
     }
     else if(peek().type == TokenType::KW_FALSE){
         match(TokenType::KW_FALSE);
+        return make_unique<node_types::TrueFalseLiteral>(false);
     }
     else if(peek().type == TokenType::IDENTIFIER){
         Token tkn_id = peek();
@@ -491,20 +528,25 @@ ExprNodePtr Parser::parse_Pri_exp(){
         if(symb == nullptr){
             throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
+
+        return make_unique<node_types::IdLiteral>(tkn_id.lexeme);
     }
     else if(peek().type == TokenType::NUMBER_LITERAL){
         match(TokenType::NUMBER_LITERAL);
+        return make_unique<node_types::NumLiteral>(std::stoll(previous().lexeme));
     }
     else if(peek().type == TokenType::KW_THIS){
         match(TokenType::KW_THIS);
+        return make_unique<node_types::ThisExpr>();
     }
     else if(peek().type == TokenType::KW_NEW){
         match(TokenType::KW_NEW);
         if(peek().type == TokenType::KW_INT){
             match(TokenType::KW_INT);
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp();
+            ExprNodePtr size = parse_Exp();
             match(TokenType::PUNC_RBRACKET);
+            return make_unique<node_types::NewArrayExpr>(std::move(size));
         }
         else{
             Token tkn_class = peek();
@@ -516,6 +558,8 @@ ExprNodePtr Parser::parse_Pri_exp(){
             if(symb == nullptr || (*symb).kind != SymbolKind::CLASS){
                 throw_error("Classe não declarada: " + tkn_class.lexeme, ErrorPhase::SEMANTIC);
             }
+
+            return make_unique<node_types::NewObjExpr>(tkn_class.lexeme);
         }
     }
     else{

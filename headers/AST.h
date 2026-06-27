@@ -6,8 +6,16 @@
 #include <string>
 
 namespace{ using std::vector, std::string, std::unique_ptr;}
+/**
+ * @class ASTNode
+ * @brief Base class for every node in the Abstract Syntax Tree. 
+ * 
+ * Stores the grammar rule that produced the node and provides the virtual
+ * interface used to visualize the tree (to_string) and traverse it (getChildren);
+ */
 class ASTNode{
 public:
+    /** @brief Enumerates every grammar production representable as an AST node.*/
     enum class NodeRule{
         PROG,
         MAINDECL,
@@ -28,13 +36,25 @@ public:
         PRIMARYEXPR,
         TRUEFALSELITERAL,
         NUMLITERAL,
-        IDLITERAL,  
+        IDLITERAL,
+        THISEXPR,
+        NEWOBJEXPR,
+        NEWARRAYEXPR,
     } node_rule;
-    ///TODO
-    virtual string to_string(){return "";}
+
+    /** @brief Returns a one-line text label for this node.*/
+    virtual string to_string() {return "";};
+    /** @brief Returns pointers to the node's direct children*/
+    virtual vector<ASTNode*> getChildren() {return {};};
 };
 
-
+/**
+ * @class ExprNode 
+ * @brief Class for all expression nodes.
+ * 
+ * Adds the static type of the expression and a slot for its evaluated
+ * value, to be checked and populated during semantic analysis.
+ */
 class ExprNode : public ASTNode{
 public:
     enum class ExprType{
@@ -53,6 +73,11 @@ protected:
 
 
 namespace node_types{
+    /**
+     * @class ProgNode
+     * @brief Root node.
+     * 
+     */
     class ProgNode : public ASTNode{
         unique_ptr<ASTNode> main_decl;
         vector<unique_ptr<ASTNode>> class_decl;
@@ -63,7 +88,11 @@ namespace node_types{
             this->node_rule = NodeRule::PROG;
         }
     };
-
+     /**
+     * @class MainDecl
+     * @brief The main class and its 'main(String[]) method body.
+     * 
+     */
     class MainDecl : public ASTNode{
         string main_class_id;
         string args_var_id;
@@ -75,8 +104,26 @@ namespace node_types{
             commands = std::move(c);
             this->node_rule = NodeRule::MAINDECL;
         }
+
+        string to_string(){
+            return "MAIN(class = " + main_class_id + ", args = " + args_var_id + ")";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            for(auto& c : commands){
+                filhos.push_back(c.get());
+            }
+            
+            return filhos;
+        }
     };
 
+     /**
+     * @class ClassDecl
+     * @brief A class declaration, possibly with inheritance.
+     * 
+     */
     class ClassDecl : public ASTNode{
         string class_id;
         vector<unique_ptr<ASTNode>> variables;
@@ -93,6 +140,12 @@ namespace node_types{
             this->node_rule = NodeRule::CLASSDECL;
         }
     };
+    
+     /**
+     * @class VarDecl
+     * @brief A variable declaration.
+     * 
+     */
     class VarDecl : public ASTNode{
         string var_id;
         string var_type;
@@ -107,6 +160,12 @@ namespace node_types{
             this->node_rule = NodeRule::VARDECL;
         }
     };
+
+     /**
+     * @class MethodDecl
+     * @brief A method declaration (signature, params, body, and return).
+     * 
+     */
     class MethodDecl : public ASTNode{
         string method_id;
         string methodtype;
@@ -122,7 +181,32 @@ namespace node_types{
             return_expr = std::move(r_expr);
             this->node_rule = NodeRule::METHODDECL;
         }
+
+        string to_string(){
+            return "METHOD(" + method_id + " : " + methodtype + ")";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            for(auto& p : param_list){
+                filhos.push_back(p.get());
+            }
+            for(auto& c : commands_list){
+                filhos.push_back(c.get());
+            }
+            if(return_expr != nullptr){
+                filhos.push_back(return_expr.get());
+            }
+
+            return filhos;
+        }
     };
+
+     /**
+     * @class CommandDecl
+     * @brief honestamente não sei, não usei...
+     * 
+     */
     class CommandDecl : public ASTNode{
         unique_ptr<ASTNode> command; 
     public:
@@ -131,6 +215,12 @@ namespace node_types{
             this->node_rule = NodeRule::COMMANDDECL;
         }
     };
+
+     /**
+     * @class AssignDecl
+     * @brief An assignment command.
+     * 
+     */
     class AssignDecl : public ASTNode{
         string lhs_id;
         bool is_array;
@@ -145,6 +235,12 @@ namespace node_types{
             this->node_rule = NodeRule::ASSIGNDECL;
         }
     };
+
+     /**
+     * @class IfElseDecl
+     * @brief An if/else command with { command(s) }.
+     * 
+     */
     class IfElseDecl : public ASTNode {
         unique_ptr<ExprNode> if_exp;
         vector<unique_ptr<ASTNode>> command_list;
@@ -159,6 +255,12 @@ namespace node_types{
             this->node_rule = NodeRule::IFELSEDECL;
         }
     };
+
+     /**
+     * @class WhileDecl
+     * @brief A while loop with { command(s) }.
+     * 
+     */
     class WhileDecl : public ASTNode{
         unique_ptr<ExprNode> while_exp;
         vector<unique_ptr<ASTNode>> command_list;
@@ -169,6 +271,12 @@ namespace node_types{
             this->node_rule = NodeRule::WHILEDECL;
         }
     };
+
+     /**
+     * @class PrintLn
+     * @brief System.out.println(exp) command.
+     * 
+     */
     class PrintLn : public ASTNode{
         unique_ptr<ExprNode> print_exp;
     public:
@@ -177,6 +285,12 @@ namespace node_types{
             this->node_rule = NodeRule::PRINTLN;
         }
     };
+
+     /**
+     * @class AndExpr
+     * @brief Logical AND expression. Result type is boolean.
+     * 
+     */
     class AndExpr : public ExprNode{
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
@@ -190,6 +304,13 @@ namespace node_types{
             this->node_rule = NodeRule::ANDEXPR;
         }
     };
+
+     /**
+     * @class RelExpr
+     * @brief Relational comparison (greater than) expression.
+     * Result type is boolean.
+     * 
+     */
     class RelExpr : public ExprNode{
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
@@ -204,12 +325,20 @@ namespace node_types{
         }
 
     };
+
+     /**
+     * @class AddExpr
+     * @brief Additive expression (+ / -). Result type is int.
+     * 
+     */
     class AddExpr : public ExprNode{
-        int64_t val;
+    public:
         enum class Operation{
             SUM,
             SUB,
         } op;
+    private:
+        int64_t val;
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
     public:
@@ -222,12 +351,20 @@ namespace node_types{
             this->node_rule = NodeRule::ADDEXPR;
         }
     };
+
+     /**
+     * @class MulDivExpr
+     * @brief Multiplicative expression (*). Result type is int.
+     * 
+     */
     class MulDivExpr : public ExprNode{
-        int64_t val;
-        enum class Operation{
+    public:
+    enum class Operation{
             MUL,
             DIV,
         } op;
+    private:
+        int64_t val;
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
     public:
@@ -241,6 +378,12 @@ namespace node_types{
         }
         
     };
+
+     /**
+     * @class NegateExpr
+     * @brief Logical negation (!) expression. Result type is boolean.
+     * 
+     */
     class NegateExpr : public ExprNode{
         bool is_negated;
         unique_ptr<ExprNode> lhs;
@@ -252,16 +395,25 @@ namespace node_types{
             this->node_rule = NodeRule::NEGATEEXPR;
         }
     };
-    //Psfexp in the described language syntax
+
+     /**
+     * @class PrimaryAccessExpr
+     * @brief Postfix access on a primary expression (array index,
+     * length or method call);
+     * @note Psfexp in the described language syntax
+     */
     class PrimaryAccessExpr : public ExprNode{
-        unique_ptr<ExprNode> lhs;
-        vector<unique_ptr<ExprNode>> access_expr;
+    public:
         enum class PEModifier {
             LENGTH,
             ARRAY_ACCESS,
             CLASS_CONSTRUCT,
             METHOD_CALL,
         };
+    private:
+        unique_ptr<ExprNode> lhs;
+        vector<unique_ptr<ExprNode>> access_expr;
+            
         PEModifier expr_kind;
         vector<unique_ptr<ExprNode>> list_expression;//expression list for the method call
     public:
@@ -273,7 +425,43 @@ namespace node_types{
             type = ExprType::INT;
             this->node_rule = NodeRule::PRIMARYACCESSEXPR;
         }
+
+        string to_string(){
+            string kindStr = "";
+            if(expr_kind == PEModifier::LENGTH){
+                kindStr = "length";
+            }
+            else if(expr_kind == PEModifier::ARRAY_ACCESS){
+                kindStr = "array[]";
+            }
+            else if(expr_kind == PEModifier::METHOD_CALL){
+                kindStr = "method call";
+            }
+            else{
+                kindStr = "new";
+            }
+
+            return "PrimaryAccess(" + kindStr + ")";
+        }
+
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {lhs.get()};
+            for(auto& ae : access_expr){
+                filhos.push_back(ae.get());
+            }
+            for(auto& le : list_expression){
+                filhos.push_back(le.get());
+            }
+            
+            return filhos;
+        }
     };
+
+     /**
+     * @class PrimaryExpr
+     * @brief A parenthesized expression (EXP).
+     * 
+     */
     class PrimaryExpr : public ExprNode{
         unique_ptr<ExprNode> expr;
     public:
@@ -282,6 +470,12 @@ namespace node_types{
             this->node_rule = NodeRule::PRIMARYEXPR;
         }
     };
+
+     /**
+     * @class TrueFalseLiteral
+     * @brief A boolean literal (true or false).
+     * 
+     */
     class TrueFalseLiteral : public ExprNode{
         bool bool_val;
     public:
@@ -291,6 +485,12 @@ namespace node_types{
             this->node_rule = NodeRule::TRUEFALSELITERAL;
         }
     };
+
+     /**
+     * @class NumLiteral
+     * @brief An integer literal.
+     * 
+     */
     class NumLiteral : public ExprNode{
         int64_t int_val;
     public:
@@ -300,6 +500,12 @@ namespace node_types{
             this->node_rule = NodeRule::NUMLITERAL;
         }
     };
+
+     /**
+     * @class IdLiteral
+     * @brief An identifier reference used as an expression.
+     * 
+     */
     class IdLiteral : public ExprNode{
         string id;
     public:
@@ -310,8 +516,58 @@ namespace node_types{
         }
         
     };
+
+     /**
+     * @class ThisExpr
+     * @brief The 'this' reference to the current object.
+     * 
+     */
+    class ThisExpr : public ExprNode{
+    public:
+        ThisExpr(){
+            type = ExprType::ID;
+            this->node_rule = NodeRule::THISEXPR;
+        }
+    };
+    
+     /**
+     * @class NewObjExpr
+     * @brief Object construction 'new Obj()'.
+     * 
+     */
+    class NewObjExpr : public ExprNode{
+        string class_id;
+
+    public:
+        NewObjExpr(string id){
+            class_id = std::move(id);
+            type = ExprType::ID;
+            this->node_rule = NodeRule::NEWOBJEXPR;
+        }
+    };
+
+     /**
+     * @class NewArrayExpr
+     * @brief Array construction 'new int[TAM].
+     * 
+     */
+    class NewArrayExpr : public ExprNode{
+        unique_ptr<ExprNode> size_expr;
+
+    public:
+        NewArrayExpr(unique_ptr<ExprNode> size){
+            size_expr = std::move(size);
+            type = ExprType::INT_ARR;
+            this->node_rule = NodeRule::NEWARRAYEXPR;
+        }
+    };
 }
 
+/**
+ * @class AST
+ * @brief
+ * 
+ */
 class AST{
 private:
     unique_ptr<ASTNode> tree_root;

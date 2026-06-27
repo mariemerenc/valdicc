@@ -63,6 +63,8 @@ class Parser{
      */
     Token previous();
 
+    bool peek_Cmd();
+
     /**
      * @brief Consumes the current token if it matches the expected type.
      * * If the current type does not match the expected type, this method
