@@ -10,8 +10,11 @@ namespace{ using std::vector, std::string, std::unique_ptr;}
  * @class ASTNode
  * @brief Base class for every node in the Abstract Syntax Tree. 
  * 
- * Stores the grammar rule that produced the node and provides the virtual
- * interface used to visualize the tree (to_string) and traverse it (getChildren);
+ * Stores the grammar rule that produced the node (node_rule) and provides
+ * the virtual to_string() used to visualize the tree. Traversal (finding a
+ * node's children) is NOT part of this interface -- it is handled outside
+ * the class hierarchy by get_children_for() in AST.cpp, which switches on
+ * node_rule and dynamic_casts to the concrete type.
  */
 class ASTNode{
 public:
@@ -44,8 +47,6 @@ public:
 
     /** @brief Returns a one-line text label for this node.*/
     virtual string to_string() {return "";};
-    /** @brief Returns pointers to the node's direct children*/
-    virtual vector<ASTNode*> getChildren() {return {};};
 };
 
 /**
@@ -79,9 +80,10 @@ namespace node_types{
      * 
      */
     class ProgNode : public ASTNode{
+    public:
         unique_ptr<ASTNode> main_decl;
         vector<unique_ptr<ASTNode>> class_decl;
-    public:
+
         ProgNode(unique_ptr<ASTNode> m, vector<unique_ptr<ASTNode>> &&c){
             main_decl = std::move(m);
             class_decl = std::move(c);
@@ -91,17 +93,6 @@ namespace node_types{
         string to_string(){
             return "PROGRAM(" + std::to_string(class_decl.size()) + " class(es) + main)";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(main_decl != nullptr){
-                filhos.push_back(main_decl.get());
-            }
-            for(auto& c : class_decl){
-                filhos.push_back(c.get());
-            }
-            return filhos;
-        }
     };
      /**
      * @class MainDecl
@@ -109,10 +100,11 @@ namespace node_types{
      * 
      */
     class MainDecl : public ASTNode{
+    public:
         string main_class_id;
         string args_var_id;
         vector<unique_ptr<ASTNode>> commands;
-    public:
+
         MainDecl(const string &m_id, const string &a_id, vector<unique_ptr<ASTNode>> &&c){
             main_class_id = m_id;
             args_var_id = a_id;
@@ -123,15 +115,6 @@ namespace node_types{
         string to_string(){
             return "MAIN(class = " + main_class_id + ", args = " + args_var_id + ")";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            for(auto& c : commands){
-                filhos.push_back(c.get());
-            }
-            
-            return filhos;
-        }
     };
 
      /**
@@ -140,12 +123,13 @@ namespace node_types{
      * 
      */
     class ClassDecl : public ASTNode{
+    public:
         string class_id;
         vector<unique_ptr<ASTNode>> variables;
         vector<unique_ptr<ASTNode>> methods;
         bool extends;
         string inherit_id;
-    public:
+
         ClassDecl(const string &c_id, vector<unique_ptr<ASTNode>> &&v, vector<unique_ptr<ASTNode>> &&m, bool e, const string &i_id){
             class_id = c_id;
             variables = std::move(v);
@@ -163,17 +147,6 @@ namespace node_types{
             s += ")";
             return s;
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            for(auto& v : variables){
-                filhos.push_back(v.get());
-            }
-            for(auto& m : methods){
-                filhos.push_back(m.get());
-            }
-            return filhos;
-        }
     };
     
      /**
@@ -182,10 +155,11 @@ namespace node_types{
      * 
      */
     class VarDecl : public ASTNode{
+    public:
         string var_id;
         string var_type;
         bool is_array;
-    public:
+
         VarDecl(const string &v_id, const string &v_type){
             var_id = v_id;
             var_type = v_type;
@@ -206,12 +180,13 @@ namespace node_types{
      * 
      */
     class MethodDecl : public ASTNode{
+    public:
         string method_id;
         string methodtype;
         vector<unique_ptr<ASTNode>> param_list;
         vector<unique_ptr<ASTNode>> commands_list;
         unique_ptr<ExprNode> return_expr;
-    public:
+
         MethodDecl(const string &met_id, const string& met_type,vector<unique_ptr<ASTNode>> &&p_list, vector<unique_ptr<ASTNode>> &&c_list, unique_ptr<ExprNode> r_expr){
             method_id = met_id;
             methodtype = met_type;
@@ -224,21 +199,6 @@ namespace node_types{
         string to_string(){
             return "METHOD(" + method_id + " : " + methodtype + ")";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            for(auto& p : param_list){
-                filhos.push_back(p.get());
-            }
-            for(auto& c : commands_list){
-                filhos.push_back(c.get());
-            }
-            if(return_expr != nullptr){
-                filhos.push_back(return_expr.get());
-            }
-
-            return filhos;
-        }
     };
 
      /**
@@ -247,8 +207,9 @@ namespace node_types{
      * 
      */
     class CommandDecl : public ASTNode{
-        unique_ptr<ASTNode> command; 
     public:
+        unique_ptr<ASTNode> command; 
+
         CommandDecl(unique_ptr<ASTNode> c){
             command = std::move(c);
             this->node_rule = NodeRule::COMMANDDECL;
@@ -256,13 +217,6 @@ namespace node_types{
 
         string to_string(){
             return "COMMAND";
-        }
-
-        vector<ASTNode*> getChildren(){
-            if(command != nullptr){
-                return {command.get()};
-            }
-            return {};
         }
     };
 
@@ -272,11 +226,12 @@ namespace node_types{
      * 
      */
     class AssignDecl : public ASTNode{
+    public:
         string lhs_id;
         bool is_array;
         unique_ptr<ExprNode> index_expr;
         unique_ptr<ExprNode> rhs;
-    public:
+
         AssignDecl(const string &l_id, bool arr, unique_ptr<ExprNode> i_expr, unique_ptr<ExprNode> r_expr){
             lhs_id = l_id;
             is_array = arr;
@@ -293,17 +248,6 @@ namespace node_types{
             s += " =)";
             return s;
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(is_array && index_expr != nullptr){
-                filhos.push_back(index_expr.get());
-            }
-            if(rhs != nullptr){
-                filhos.push_back(rhs.get());
-            }
-            return filhos;
-        }
     };
 
      /**
@@ -312,11 +256,12 @@ namespace node_types{
      * 
      */
     class IfElseDecl : public ASTNode {
+    public:
         unique_ptr<ExprNode> if_exp;
         vector<unique_ptr<ASTNode>> command_list;
         bool has_else;
         vector<unique_ptr<ASTNode>> else_command_list;
-    public:
+
         IfElseDecl(unique_ptr<ExprNode> i_exp, vector<unique_ptr<ASTNode>> &&c_list, bool h_else, vector<unique_ptr<ASTNode>> &&e_c_list){
             if_exp = std::move(i_exp);
             command_list = std::move(c_list);
@@ -332,22 +277,6 @@ namespace node_types{
             }
             return s;
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(if_exp != nullptr){
-                filhos.push_back(if_exp.get());
-            }
-            for(auto& c : command_list){
-                filhos.push_back(c.get());
-            }
-            if(has_else){
-                for(auto& c : else_command_list){
-                    filhos.push_back(c.get());
-                }
-            }
-            return filhos;
-        }
     };
 
      /**
@@ -356,9 +285,10 @@ namespace node_types{
      * 
      */
     class WhileDecl : public ASTNode{
+    public:
         unique_ptr<ExprNode> while_exp;
         vector<unique_ptr<ASTNode>> command_list;
-    public:
+
         WhileDecl(unique_ptr<ExprNode> w_exp, vector<unique_ptr<ASTNode>> &&c_list){
             while_exp = std::move(w_exp);
             command_list = std::move(c_list);
@@ -368,17 +298,6 @@ namespace node_types{
         string to_string(){
             return "WHILE";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(while_exp != nullptr){
-                filhos.push_back(while_exp.get());
-            }
-            for(auto& c : command_list){
-                filhos.push_back(c.get());
-            }
-            return filhos;
-        }
     };
 
      /**
@@ -387,8 +306,9 @@ namespace node_types{
      * 
      */
     class PrintLn : public ASTNode{
-        unique_ptr<ExprNode> print_exp;
     public:
+        unique_ptr<ExprNode> print_exp;
+
         PrintLn(unique_ptr<ExprNode> p_expr){
             print_exp = std::move(p_expr);
             this->node_rule = NodeRule::PRINTLN;
@@ -396,13 +316,6 @@ namespace node_types{
 
         string to_string(){
             return "PRINTLN";
-        }
-
-        vector<ASTNode*> getChildren(){
-            if(print_exp != nullptr){
-                return {print_exp.get()};
-            }
-            return {};
         }
     };
 
@@ -412,10 +325,11 @@ namespace node_types{
      * 
      */
     class AndExpr : public ExprNode{
+    public:
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
         bool val;
-    public:
+
         AndExpr(unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             lhs = std::move(left);
             rhs = std::move(right);
@@ -427,13 +341,6 @@ namespace node_types{
         string to_string(){
             return "AND(&&)";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(lhs != nullptr) filhos.push_back(lhs.get());
-            if(rhs != nullptr) filhos.push_back(rhs.get());
-            return filhos;
-        }
     };
 
      /**
@@ -443,10 +350,11 @@ namespace node_types{
      * 
      */
     class RelExpr : public ExprNode{
+    public:
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
         bool val;
-    public:
+
         RelExpr(unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             lhs = std::move(left);
             rhs = std::move(right);
@@ -457,13 +365,6 @@ namespace node_types{
 
         string to_string(){
             return "REL(>)";
-        }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(lhs != nullptr) filhos.push_back(lhs.get());
-            if(rhs != nullptr) filhos.push_back(rhs.get());
-            return filhos;
         }
 
     };
@@ -479,11 +380,10 @@ namespace node_types{
             SUM,
             SUB,
         } op;
-    private:
         int64_t val;
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
-    public:
+
         AddExpr(Operation operation, unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             op = operation;
             lhs = std::move(left);
@@ -496,13 +396,6 @@ namespace node_types{
         string to_string(){
             return string("ADD(") + (op == Operation::SUM ? "+" : "-") + ")";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(lhs != nullptr) filhos.push_back(lhs.get());
-            if(rhs != nullptr) filhos.push_back(rhs.get());
-            return filhos;
-        }
     };
 
      /**
@@ -512,15 +405,14 @@ namespace node_types{
      */
     class MulDivExpr : public ExprNode{
     public:
-    enum class Operation{
+        enum class Operation{
             MUL,
             DIV,
         } op;
-    private:
         int64_t val;
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
-    public:
+
         MulDivExpr(Operation operation, unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             op = operation;
             lhs = std::move(left);
@@ -533,13 +425,6 @@ namespace node_types{
         string to_string(){
             return string("MUL(") + (op == Operation::MUL ? "*" : "/") + ")";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {};
-            if(lhs != nullptr) filhos.push_back(lhs.get());
-            if(rhs != nullptr) filhos.push_back(rhs.get());
-            return filhos;
-        }
         
     };
 
@@ -549,9 +434,10 @@ namespace node_types{
      * 
      */
     class NegateExpr : public ExprNode{
+    public:
         bool is_negated;
         unique_ptr<ExprNode> lhs;
-    public:
+
         NegateExpr(bool negated, unique_ptr<ExprNode> left){
             is_negated = negated;
             lhs = std::move(left);
@@ -561,13 +447,6 @@ namespace node_types{
 
         string to_string(){
             return is_negated ? "NOT(!)" : "NOT";
-        }
-
-        vector<ASTNode*> getChildren(){
-            if(lhs != nullptr){
-                return {lhs.get()};
-            }
-            return {};
         }
     };
 
@@ -585,13 +464,12 @@ namespace node_types{
             CLASS_CONSTRUCT,
             METHOD_CALL,
         };
-    private:
+
         unique_ptr<ExprNode> lhs;
         vector<unique_ptr<ExprNode>> access_expr;
-            
         PEModifier expr_kind;
         vector<unique_ptr<ExprNode>> list_expression;//expression list for the method call
-    public:
+
         PrimaryAccessExpr(unique_ptr<ExprNode> left, PEModifier kind, vector<unique_ptr<ExprNode>> access, vector<unique_ptr<ExprNode>> list_expr = {}){
             lhs = std::move(left);
             expr_kind = kind;
@@ -618,18 +496,6 @@ namespace node_types{
 
             return "PrimaryAccess(" + kindStr + ")";
         }
-
-        vector<ASTNode*> getChildren(){
-            vector<ASTNode*> filhos = {lhs.get()};
-            for(auto& ae : access_expr){
-                filhos.push_back(ae.get());
-            }
-            for(auto& le : list_expression){
-                filhos.push_back(le.get());
-            }
-            
-            return filhos;
-        }
     };
 
      /**
@@ -638,8 +504,9 @@ namespace node_types{
      * 
      */
     class PrimaryExpr : public ExprNode{
-        unique_ptr<ExprNode> expr;
     public:
+        unique_ptr<ExprNode> expr;
+
         PrimaryExpr(unique_ptr<ExprNode> inner){
             expr = std::move(inner);
             this->node_rule = NodeRule::PRIMARYEXPR;
@@ -647,13 +514,6 @@ namespace node_types{
 
         string to_string(){
             return "PAREN()";
-        }
-
-        vector<ASTNode*> getChildren(){
-            if(expr != nullptr){
-                return {expr.get()};
-            }
-            return {};
         }
     };
 
@@ -663,8 +523,9 @@ namespace node_types{
      * 
      */
     class TrueFalseLiteral : public ExprNode{
-        bool bool_val;
     public:
+        bool bool_val;
+
         TrueFalseLiteral(bool v){
             bool_val = v;
             type = ExprType::BOOL;
@@ -682,8 +543,9 @@ namespace node_types{
      * 
      */
     class NumLiteral : public ExprNode{
-        int64_t int_val;
     public:
+        int64_t int_val;
+
         NumLiteral(int64_t v){
             int_val = v;
             type = ExprType::INT;
@@ -701,8 +563,9 @@ namespace node_types{
      * 
      */
     class IdLiteral : public ExprNode{
-        string id;
     public:
+        string id;
+
         IdLiteral(string identifier){
             id = std::move(identifier);
             type = ExprType::ID;
@@ -712,7 +575,6 @@ namespace node_types{
         string to_string(){
             return "ID(" + id + ")";
         }
-        
     };
 
      /**
@@ -738,9 +600,9 @@ namespace node_types{
      * 
      */
     class NewObjExpr : public ExprNode{
+    public:
         string class_id;
 
-    public:
         NewObjExpr(string id){
             class_id = std::move(id);
             type = ExprType::ID;
@@ -758,9 +620,9 @@ namespace node_types{
      * 
      */
     class NewArrayExpr : public ExprNode{
+    public:
         unique_ptr<ExprNode> size_expr;
 
-    public:
         NewArrayExpr(unique_ptr<ExprNode> size){
             size_expr = std::move(size);
             type = ExprType::INT_ARR;
@@ -769,13 +631,6 @@ namespace node_types{
 
         string to_string(){
             return "NEW(int[])";
-        }
-
-        vector<ASTNode*> getChildren(){
-            if(size_expr != nullptr){
-                return {size_expr.get()};
-            }
-            return {};
         }
     };
 }
