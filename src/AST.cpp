@@ -4,9 +4,6 @@
 /**
  * @brief Recursively renders a node and its subtree into 'out'.
  * 
- * Uses ONLY the virtual ASTNode interface (to_string / getChildren), so it
- * works for every concrete node type without knowing about any of them.
- * 
  * @param node Node to render. If nullptr, prints a placeholder and returns.
  * @param prefix Accumulated indentation string for this depth (grows by
  *               "    " or "│   " for each ancestor, depending on whether
@@ -41,8 +38,6 @@ string AST::print_tree(){
         return out.str();
     }
 
-    // root has no siblings, so it is always treated as "last" (no leftover
-    // vertical bar dangling below it) and starts with an empty prefix.
     out << tree_root->to_string() << "\n";
 
     std::vector<ASTNode*> children = tree_root->getChildren();
