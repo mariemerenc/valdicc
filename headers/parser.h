@@ -11,6 +11,10 @@
 #include "running_opts.h"
 #include "environment.h"
 
+/**
+ * @enum ErrorPhase
+ * @brief Compilation phase a parser error belongs to
+ */
 enum class ErrorPhase {SYNTACTIC, SEMANTIC};
 
 /**
@@ -63,6 +67,11 @@ class Parser{
      */
     Token previous();
 
+    /**
+     * @brief Checks whether the current token can start a command.
+     * @return true If lookahead is an .identifier "if", "while" or "System".
+     * @return false Otherwise.
+     */
     bool peek_Cmd();
 
     /**
@@ -76,50 +85,71 @@ class Parser{
 
     /**
      * @brief Throws a runtime error interrupting the compilation process.
-     * @param msg The error information to display alongside the line and column data.
+     * @param msg The error information to display 
+     * @param phase the phase (SYNTACTIC or SEMANTIC) used in the label
      */
     void throw_error(const std::string& msg, ErrorPhase phase = ErrorPhase::SYNTACTIC); 
 
 
     /*==============================[GRAMMAR PRODUCTION RULES]==============================*/
     
-    /** @brief Parses the root program structure. */
+    /** @brief Parses the root program structure and returns the AST root */
     unique_ptr<ASTNode> parse_Prog();
 
-    /** @brief Parses the main class and its method signature. */
+    /** @brief Parses the main class and returns its MainDecl node */
     unique_ptr<ASTNode> parse_MainC();
 
-    /** @brief Parses the class declaration and inheritances. */
+    /** @brief Parses the class declaration and returns their ClassDecl nodes */
     vector<unique_ptr<ASTNode>> parse_DefCl();
 
-    /** @brief Parses variable declarations. */
+    /** @brief Parses variable declarations into VarDecl nodes */
     vector<unique_ptr<ASTNode>> parse_DefVar();
 
-    /** @brief Parses method signatures and bodies. */
+    /** @brief Parses method declarations into MethodDecl nodes */
     vector<unique_ptr<ASTNode>> parse_DefMet();
 
-    /** @brief Parses data types (int, boolean, identifiers and arrays). */
+    /** @brief Parses data types and returns it as a string */
     string parse_Type();
 
-    /** @brief Parses a list of arguments. */
+    /** @brief Parses a list of arguments into VarDecl nodes */
     vector<unique_ptr<ASTNode>> parse_Args();
 
-    /** @brief Parses ... */
+    /** @brief Parses a non-empty command list */
     vector<unique_ptr<ASTNode>> parse_Lcom();
     
-    /** @brief Parses execution commands (if/else, while, assignments, print). */
+    /** @brief Parses a single command and returns its node */
     unique_ptr<ASTNode> parse_Cmd();
 
     /** @brief Parses a list of expressions (e.g., method call args). */
     vector<unique_ptr<ExprNode>> parse_ListExp();
 
+    /*
+    * Expression precedence cascade (lowest → highest):
+    *   Exp → And_exp → Rel_exp → Add_exp → Mul_exp → Un_exp → Psf_exp → Pri_exp
+    */
+
+    /** @brief Parses an expression (entry point) */
     unique_ptr<ExprNode> parse_Exp();
+
+    /** @brief Parses logical AND; build AndExpr nodes */
     unique_ptr<ExprNode> parse_And_exp();
+
+    /** @brief Parses relational comparison (>); builds RelExpr nodes */
     unique_ptr<ExprNode> parse_Rel_exp();
+
+    /** @brief Parses additive operators (+ / -); builds AddExpr nodes */
     unique_ptr<ExprNode> parse_Add_exp();
+
+    /** @brief Parses multiplicative operator (*); builds MulDivExpr nodes */
     unique_ptr<ExprNode> parse_Mul_exp();
+
+    /** @brief Parses negation (!); builds NegateExpr nodes */
     unique_ptr<ExprNode> parse_Un_exp();
+
+    /** @brief Parses postfix acces ([], .length, .method(...) etc); builds PrimaryAccesExpr nodes */
     unique_ptr<ExprNode> parse_Psf_exp();
+
+    /** @brief Parses a primary expression (highest precedence). */
     unique_ptr<ExprNode> parse_Pri_exp();
 };
 

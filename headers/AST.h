@@ -43,7 +43,7 @@ public:
         THISEXPR,
         NEWOBJEXPR,
         NEWARRAYEXPR,
-    } node_rule;
+    } node_rule; ///< The grammar rule this node corresponds to.
 
     /** @brief Returns a one-line text label for this node.*/
     virtual string to_string() {return "";};
@@ -58,11 +58,12 @@ public:
  */
 class ExprNode : public ASTNode{
 public:
+    /** @brief Primitive expression types of the language. */
     enum class ExprType{
         INT, BOOL, ID, INT_ARR
     }; 
 protected:
-    ExprType type;
+    ExprType type; ///< Inferred type of the expression.
     union DataVal{
         double floatval;
         int64_t intval;
@@ -72,16 +73,18 @@ protected:
 };
 
 
-
+/** @brief AST node types produced by the Parser. */
 namespace node_types{
     /**
      * @class ProgNode
      * @brief Root node.
      * 
+     * @param main_decl Main class declaration.
+     * @param class_decl remaining class declaration.
      */
     class ProgNode : public ASTNode{
     public:
-        unique_ptr<ASTNode> main_decl;
+        unique_ptr<ASTNode> main_decl; 
         vector<unique_ptr<ASTNode>> class_decl;
 
         ProgNode(unique_ptr<ASTNode> m, vector<unique_ptr<ASTNode>> &&c){
@@ -97,7 +100,9 @@ namespace node_types{
      /**
      * @class MainDecl
      * @brief The main class and its 'main(String[]) method body.
-     * 
+     * @param main_class_id main class identifier
+     * @param args_var_id "String[] args" param identifier
+     * @param commands command list of the main method body
      */
     class MainDecl : public ASTNode{
     public:
@@ -120,7 +125,11 @@ namespace node_types{
      /**
      * @class ClassDecl
      * @brief A class declaration, possibly with inheritance.
-     * 
+     * @param class_id class identifier
+     * @param variables variable declarations
+     * @param methods method declarations
+     * @param extends True if the class extends another
+     * @param inherit_id parent class identifier (empty when @p extends is false)
      */
     class ClassDecl : public ASTNode{
     public:
@@ -152,7 +161,9 @@ namespace node_types{
      /**
      * @class VarDecl
      * @brief A variable declaration.
-     * 
+     * @param var_id variable identifier
+     * @param var_type declared type (int, int[], boolean etc.)
+     * @note is_array is derived from @p var_type ending in ']'
      */
     class VarDecl : public ASTNode{
     public:
@@ -177,7 +188,11 @@ namespace node_types{
      /**
      * @class MethodDecl
      * @brief A method declaration (signature, params, body, and return).
-     * 
+     * @param method_id method identifier 
+     * @param methodtype return type
+     * @param param_list param declarations
+     * @param commands_list command list of the body
+     * @param return_expr expression returned by the method
      */
     class MethodDecl : public ASTNode{
     public:
@@ -223,7 +238,10 @@ namespace node_types{
      /**
      * @class AssignDecl
      * @brief An assignment command.
-     * 
+     * @param lhs_id target variable identifier
+     * @param is_array True for an indexed assignment
+     * @param index_expr index expression (null when @p is_array is false)
+     * @param rhs right hand side expression
      */
     class AssignDecl : public ASTNode{
     public:
@@ -253,7 +271,10 @@ namespace node_types{
      /**
      * @class IfElseDecl
      * @brief An if/else command with { command(s) }.
-     * 
+     * @param if_exp condition expression
+     * @param command_list commands of the "if" branch
+     * @param has_else True when an "else" branch is present
+     * @param else_command_list commands of the "else" branch (empty when @p has_else is false)
      */
     class IfElseDecl : public ASTNode {
     public:
@@ -282,7 +303,8 @@ namespace node_types{
      /**
      * @class WhileDecl
      * @brief A while loop with { command(s) }.
-     * 
+     * @param while_exp loop condition
+     * @param command_list commands of the loop body
      */
     class WhileDecl : public ASTNode{
     public:
@@ -303,7 +325,7 @@ namespace node_types{
      /**
      * @class PrintLn
      * @brief System.out.println(exp) command.
-     * 
+     * @param print_exp expression to print
      */
     class PrintLn : public ASTNode{
     public:
@@ -322,7 +344,8 @@ namespace node_types{
      /**
      * @class AndExpr
      * @brief Logical AND expression. Result type is boolean.
-     * 
+     * @param lhs left operand
+     * @param rhs right operand
      */
     class AndExpr : public ExprNode{
     public:
@@ -347,7 +370,8 @@ namespace node_types{
      * @class RelExpr
      * @brief Relational comparison (greater than) expression.
      * Result type is boolean.
-     * 
+     * @param lhs left operand
+     * @param rhs right operand
      */
     class RelExpr : public ExprNode{
     public:
@@ -372,7 +396,9 @@ namespace node_types{
      /**
      * @class AddExpr
      * @brief Additive expression (+ / -). Result type is int.
-     * 
+     * @param op operator SUM/SUB
+     * @param lhs left operand
+     * @param rhs right operand
      */
     class AddExpr : public ExprNode{
     public:
@@ -401,7 +427,9 @@ namespace node_types{
      /**
      * @class MulDivExpr
      * @brief Multiplicative expression (*). Result type is int.
-     * 
+     * @param op operator MUL/DIV (DIV unused by the grammar)
+     * @param lhs left operand
+     * @param rhs right operand
      */
     class MulDivExpr : public ExprNode{
     public:
@@ -431,7 +459,8 @@ namespace node_types{
      /**
      * @class NegateExpr
      * @brief Logical negation (!) expression. Result type is boolean.
-     * 
+     * @param is_negated Whether the operand is negated
+     * @param lhs operand expression
      */
     class NegateExpr : public ExprNode{
     public:
@@ -454,6 +483,10 @@ namespace node_types{
      * @class PrimaryAccessExpr
      * @brief Postfix access on a primary expression (array index,
      * length or method call);
+     * @param lhs base expression being accessed
+     * @param expr_kind kind of access (see PEModifier)
+     * @param access_expr the index expression for ARRAY_ACCESS (empty otherwise)
+     * @param list_expression argument list for METHOD_CALL (empty otherwise)
      * @note Psfexp in the described language syntax
      */
     class PrimaryAccessExpr : public ExprNode{
@@ -501,7 +534,7 @@ namespace node_types{
      /**
      * @class PrimaryExpr
      * @brief A parenthesized expression (EXP).
-     * 
+     * @param expr the wrapped expression (EXP)
      */
     class PrimaryExpr : public ExprNode{
     public:
@@ -520,7 +553,7 @@ namespace node_types{
      /**
      * @class TrueFalseLiteral
      * @brief A boolean literal (true or false).
-     * 
+     * @param bool_val boolean value
      */
     class TrueFalseLiteral : public ExprNode{
     public:
@@ -540,7 +573,7 @@ namespace node_types{
      /**
      * @class NumLiteral
      * @brief An integer literal.
-     * 
+     * @param int_val integer value
      */
     class NumLiteral : public ExprNode{
     public:
@@ -560,7 +593,7 @@ namespace node_types{
      /**
      * @class IdLiteral
      * @brief An identifier reference used as an expression.
-     * 
+     * @param id identifier lexeme
      */
     class IdLiteral : public ExprNode{
     public:
@@ -597,7 +630,7 @@ namespace node_types{
      /**
      * @class NewObjExpr
      * @brief Object construction 'new Obj()'.
-     * 
+     * @param class_id the class identifier being instantiated
      */
     class NewObjExpr : public ExprNode{
     public:
@@ -617,7 +650,7 @@ namespace node_types{
      /**
      * @class NewArrayExpr
      * @brief Array construction 'new int[TAM].
-     * 
+     * @param size_expr expression giving the array size
      */
     class NewArrayExpr : public ExprNode{
     public:
@@ -637,13 +670,18 @@ namespace node_types{
 
 /**
  * @class AST
- * @brief
- * 
+ * @brief Owns the root of an AST
+ * @param tree_root root node
  */
 class AST{
 private:
     unique_ptr<ASTNode> tree_root;
 public:
     AST(unique_ptr<ASTNode> p) : tree_root{std::move(p)} {}
+
+    /**
+     * @brief Renders the whole AST.
+     * @return string textual representation of the tree
+     */
     string print_tree();
 };
