@@ -294,9 +294,16 @@ namespace node_types{
             return s;
         }
 
-        // vector<ASTNode*> getChildren(){
-        //     //// TODO!!!!
-        // }
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(is_array && index_expr != nullptr){
+                filhos.push_back(index_expr.get());
+            }
+            if(rhs != nullptr){
+                filhos.push_back(rhs.get());
+            }
+            return filhos;
+        }
     };
 
      /**
@@ -326,9 +333,21 @@ namespace node_types{
             return s;
         }
 
-        // vector<ASTNode*> getChildren(){
-        //     ////// TODO!!!
-        // }
+        vector<ASTNode*> getChildren(){
+            vector<ASTNode*> filhos = {};
+            if(if_exp != nullptr){
+                filhos.push_back(if_exp.get());
+            }
+            for(auto& c : command_list){
+                filhos.push_back(c.get());
+            }
+            if(has_else){
+                for(auto& c : else_command_list){
+                    filhos.push_back(c.get());
+                }
+            }
+            return filhos;
+        }
     };
 
      /**
