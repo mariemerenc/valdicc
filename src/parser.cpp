@@ -398,8 +398,7 @@ NodePtr Parser::parse_Cmd() {
 
 
 ExprNodePtr Parser::parse_Exp() {
-    parse_And_exp();
-    return nullptr; 
+    return parse_And_exp();
 }
 
 ExprNodePtr Parser::parse_And_exp(){
