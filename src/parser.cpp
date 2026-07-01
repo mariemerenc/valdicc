@@ -373,11 +373,6 @@ NodePtr Parser::parse_Cmd() {
         match(TokenType::IDENTIFIER);
         Token tkn_id = previous();
 
-        Symbol* symb = env.lookup(tkn_id.lexeme);
-        if(symb == nullptr){
-            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
-        }
-
         bool is_array = false;
         ExprNodePtr idx_exp = nullptr;
 
@@ -523,10 +518,6 @@ ExprNodePtr Parser::parse_Pri_exp(){
         Token tkn_id = peek();
         match(TokenType::IDENTIFIER);
 
-        Symbol* symb = env.lookup(tkn_id.lexeme);
-        if(symb == nullptr){
-            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
-        }
 
         return make_unique<node_types::IdLiteral>(tkn_id.lexeme);
     }
@@ -552,11 +543,6 @@ ExprNodePtr Parser::parse_Pri_exp(){
             match(TokenType::IDENTIFIER);
             match(TokenType::PUNC_LPARENT);
             match(TokenType::PUNC_RPARENT);
-
-            Symbol* symb = env.lookup(tkn_class.lexeme);
-            if(symb == nullptr || (*symb).kind != SymbolKind::CLASS){
-                throw_error("Classe não declarada: " + tkn_class.lexeme, ErrorPhase::SEMANTIC);
-            }
 
             return make_unique<node_types::NewObjExpr>(tkn_class.lexeme);
         }
