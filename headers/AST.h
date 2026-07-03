@@ -18,6 +18,7 @@ namespace{ using std::vector, std::string, std::unique_ptr;}
  */
 class ASTNode{
 public:
+    int line = 0, column = 0;
     /** @brief Enumerates every grammar production representable as an AST node.*/
     enum class NodeRule{
         PROG,
@@ -191,6 +192,7 @@ namespace node_types{
      * @param method_id method identifier 
      * @param methodtype return type
      * @param param_list param declarations
+     * @param local_vars 
      * @param commands_list command list of the body
      * @param return_expr expression returned by the method
      */
@@ -200,13 +202,15 @@ namespace node_types{
         string methodtype;
         vector<unique_ptr<ASTNode>> param_list;
         vector<unique_ptr<ASTNode>> commands_list;
+        vector<unique_ptr<ASTNode>> local_vars;
         unique_ptr<ExprNode> return_expr;
 
-        MethodDecl(const string &met_id, const string& met_type,vector<unique_ptr<ASTNode>> &&p_list, vector<unique_ptr<ASTNode>> &&c_list, unique_ptr<ExprNode> r_expr){
+        MethodDecl(const string &met_id, const string& met_type,vector<unique_ptr<ASTNode>> &&p_list, vector<unique_ptr<ASTNode>> &&c_list, vector<unique_ptr<ASTNode>> &&v_list, unique_ptr<ExprNode> r_expr){
             method_id = met_id;
             methodtype = met_type;
             param_list = std::move(p_list);
             commands_list = std::move(c_list);
+            local_vars = std::move(v_list);
             return_expr = std::move(r_expr);
             this->node_rule = NodeRule::METHODDECL;
         }
@@ -501,12 +505,14 @@ namespace node_types{
         unique_ptr<ExprNode> lhs;
         vector<unique_ptr<ExprNode>> access_expr;
         PEModifier expr_kind;
+        string method_id;
         vector<unique_ptr<ExprNode>> list_expression;//expression list for the method call
 
-        PrimaryAccessExpr(unique_ptr<ExprNode> left, PEModifier kind, vector<unique_ptr<ExprNode>> access, vector<unique_ptr<ExprNode>> list_expr = {}){
+        PrimaryAccessExpr(unique_ptr<ExprNode> left, PEModifier kind, vector<unique_ptr<ExprNode>> access, vector<unique_ptr<ExprNode>> list_expr = {}, string met_id = ""){
             lhs = std::move(left);
             expr_kind = kind;
             access_expr = std::move(access);
+            method_id = met_id;
             list_expression = std::move(list_expr);
             type = ExprType::INT;
             this->node_rule = NodeRule::PRIMARYACCESSEXPR;
@@ -677,6 +683,7 @@ class AST{
 private:
     unique_ptr<ASTNode> tree_root;
 public:
+    ASTNode* root() {return tree_root.get();};
     AST(unique_ptr<ASTNode> p) : tree_root{std::move(p)} {}
 
     /**

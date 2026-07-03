@@ -183,8 +183,12 @@ NodeVec Parser::parse_DefCl(){
         NodeVec methods(parse_DefMet());
         match(TokenType::PUNC_RBRACE);
         env.voltar();
-        class_definitions.push_back(make_unique<node_types::ClassDecl>(class_id, std::move(vars),
-                                     std::move(methods), extends, extends_id));
+
+        auto node = make_unique<node_types::ClassDecl>(class_id, std::move(vars), std::move(methods), extends, extends_id);
+        node->line = tkn_class.line;
+        node->column = tkn_class.column;
+
+        class_definitions.push_back(std::move(node));
     }
     return class_definitions;
 }
@@ -207,7 +211,12 @@ NodeVec Parser::parse_DefVar() {
         }
 
         match(TokenType::PUNC_SEMICOLON);
-        vars.push_back(make_unique<node_types::VarDecl>(id, type));
+
+        auto node = make_unique<node_types::VarDecl>(id, type);
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
+
+        vars.push_back(std::move(node));
     }
     return vars;
 }
@@ -249,7 +258,12 @@ NodeVec Parser::parse_DefMet() {
         match(TokenType::PUNC_SEMICOLON);
         match(TokenType::PUNC_RBRACE);
         env.voltar();
-        methods.push_back(make_unique<node_types::MethodDecl>(id, type, std::move(args), std::move(commands), std::move(expr)));
+        
+        auto node = make_unique<node_types::MethodDecl>(id, type, std::move(args), std::move(commands), std::move(vars), std::move(expr));
+        node->line = tkn_met.line;
+        node->column = tkn_met.column;
+
+        methods.push_back(std::move(node));
     }
     return methods;
 }
@@ -289,7 +303,13 @@ NodeVec Parser::parse_Args() {
     if(!success){
         throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
     }
-    args.push_back(make_unique<node_types::VarDecl>(tkn_id.lexeme, type));
+    
+    auto node = make_unique<node_types::VarDecl>(tkn_id.lexeme, type);
+    node->line = tkn_id.line;
+    node->column = tkn_id.column;
+
+    args.push_back(std::move(node));
+
 
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
@@ -301,7 +321,13 @@ NodeVec Parser::parse_Args() {
         if(!success){
             throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
-        args.push_back(make_unique<node_types::VarDecl>(tkn_id.lexeme, type));
+        
+        auto node = make_unique<node_types::VarDecl>(tkn_id.lexeme, type);
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
+        
+        args.push_back(std::move(node));
+
     }
     return args;
 }
@@ -323,6 +349,7 @@ NodeVec Parser::parse_Lcom(){
 
 NodePtr Parser::parse_Cmd() {
     if (peek().type == TokenType::KW_IF) {
+        Token tkn_if = peek();
         match(TokenType::KW_IF); 
         match(TokenType::PUNC_LPARENT);
         auto ifelse_exp = parse_Exp();
@@ -342,9 +369,14 @@ NodePtr Parser::parse_Cmd() {
             match(TokenType::PUNC_RBRACE);
         }
 
-        return make_unique<node_types::IfElseDecl>(std::move(ifelse_exp), std::move(if_cmds), has_else, std::move(else_cmds));
+        auto node =  make_unique<node_types::IfElseDecl>(std::move(ifelse_exp), std::move(if_cmds), has_else, std::move(else_cmds));
+        node->line = tkn_if.line;
+        node->column = tkn_if.column;
+
+        return node;
     }
     else if (peek().type == TokenType::KW_WHILE) {
+        Token tkn_while = peek();
         match(TokenType::KW_WHILE);
         match(TokenType::PUNC_LPARENT);
         auto while_exp = parse_Exp();
@@ -353,9 +385,14 @@ NodePtr Parser::parse_Cmd() {
         auto while_cmds = peek_Cmd() ? parse_Lcom() : NodeVec{};
         match(TokenType::PUNC_RBRACE);
 
-        return make_unique<node_types::WhileDecl>(std::move(while_exp), std::move(while_cmds));
+        auto node = make_unique<node_types::WhileDecl>(std::move(while_exp), std::move(while_cmds));
+        node->line = tkn_while.line;
+        node->column = tkn_while.column;
+
+        return node;
     }
     else if (peek().type == TokenType::KW_SYSTEM) {
+        Token tkn_print = peek();
         match(TokenType::KW_SYSTEM);
         match(TokenType::PUNC_DOT);
         match(TokenType::KW_OUT);
@@ -366,7 +403,11 @@ NodePtr Parser::parse_Cmd() {
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_SEMICOLON);
 
-        return make_unique<node_types::PrintLn>(std::move(print_exp));
+        auto node = make_unique<node_types::PrintLn>(std::move(print_exp));
+        node->line = tkn_print.line;
+        node->column = tkn_print.column;
+
+        return node;
     }
     // left factoring applied here
     else {
@@ -387,7 +428,11 @@ NodePtr Parser::parse_Cmd() {
         auto rhs_exp = parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
 
-        return make_unique<node_types::AssignDecl>(tkn_id.lexeme, is_array, std::move(idx_exp), std::move(rhs_exp));
+        auto node = make_unique<node_types::AssignDecl>(tkn_id.lexeme, is_array, std::move(idx_exp), std::move(rhs_exp));
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
+
+        return node;
     }
 }
 
@@ -400,9 +445,13 @@ ExprNodePtr Parser::parse_And_exp(){
     ExprNodePtr left = parse_Rel_exp();
 
     while(peek().type == TokenType::OP_AND){
+        Token tkn_op = peek();
         match(TokenType::OP_AND);
         ExprNodePtr right = parse_Rel_exp();
+
         left = make_unique<node_types::AndExpr>(std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
 
     return left;
@@ -412,9 +461,12 @@ ExprNodePtr Parser::parse_Rel_exp(){
     ExprNodePtr left = parse_Add_exp();
 
     while(peek().type == TokenType::OP_GREATER){
+        Token tkn_op = peek();
         match(TokenType::OP_GREATER);
         ExprNodePtr right = parse_Add_exp();
         left = make_unique<node_types::RelExpr>(std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
 
     return left;
@@ -425,6 +477,7 @@ ExprNodePtr Parser::parse_Add_exp(){
     node_types::AddExpr::Operation op;
 
     while(peek().type == TokenType::OP_PLUS || peek().type == TokenType::OP_MINUS){
+        Token tkn_op = peek();
         if(peek().type == TokenType::OP_PLUS){
             match(TokenType::OP_PLUS);
             op = node_types::AddExpr::Operation::SUM;
@@ -435,6 +488,8 @@ ExprNodePtr Parser::parse_Add_exp(){
         }
         ExprNodePtr right = parse_Mul_exp();
         left = make_unique<node_types::AddExpr>(op, std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
     return left;
 }
@@ -443,19 +498,27 @@ ExprNodePtr Parser::parse_Mul_exp(){
     ExprNodePtr left = parse_Un_exp();
 
     while(peek().type == TokenType::OP_ASTERISK){
+        Token tkn_op = peek();
         match(TokenType::OP_ASTERISK);
         ExprNodePtr right = parse_Un_exp();
         left = make_unique<node_types::MulDivExpr>(node_types::MulDivExpr::Operation::MUL, std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
     return left;
 }
 
 ExprNodePtr Parser::parse_Un_exp(){
     if(peek().type == TokenType::OP_NOT){
+        Token tkn_op = peek();
         match(TokenType::OP_NOT);
         ExprNodePtr un_exp_op = parse_Un_exp();
 
-        return make_unique<node_types::NegateExpr>(true, std::move(un_exp_op));
+        auto node = make_unique<node_types::NegateExpr>(true, std::move(un_exp_op));
+        node->line = tkn_op.line;
+        node->column = tkn_op.column;
+
+        return node;
     }
     else{
         return parse_Psf_exp();
@@ -466,6 +529,7 @@ ExprNodePtr Parser::parse_Psf_exp(){
     ExprNodePtr left = parse_Pri_exp();
 
     while(peek().type == TokenType::PUNC_LBRACKET || peek().type == TokenType::PUNC_DOT){
+        Token tkn_pa = peek();
         if(peek().type == TokenType::PUNC_LBRACKET){
             match(TokenType::PUNC_LBRACKET);
             vector<ExprNodePtr> access;
@@ -473,6 +537,8 @@ ExprNodePtr Parser::parse_Psf_exp(){
             access.push_back(std::move(idx));
             match(TokenType::PUNC_RBRACKET);
             left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::ARRAY_ACCESS, std::move(access), vector<unique_ptr<ExprNode>>{});
+            left->line = tkn_pa.line;
+            left->column = tkn_pa.column;
         }
         else{
             match(TokenType::PUNC_DOT);
@@ -480,6 +546,8 @@ ExprNodePtr Parser::parse_Psf_exp(){
             if(peek().type == TokenType::KW_LENGTH){
                 match(TokenType::KW_LENGTH);
                 left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::LENGTH, vector<unique_ptr<ExprNode>>{}, vector<unique_ptr<ExprNode>>{});
+                left->line = tkn_pa.line;
+                left->column = tkn_pa.column;
             }
             else{
                 match(TokenType::IDENTIFIER);
@@ -492,7 +560,9 @@ ExprNodePtr Parser::parse_Psf_exp(){
                 }
 
                 match(TokenType::PUNC_RPARENT);
-                left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::METHOD_CALL, vector<unique_ptr<ExprNode>>{}, std::move(args));
+                left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::METHOD_CALL, vector<unique_ptr<ExprNode>>{}, std::move(args), method_id);
+                left->line = tkn_pa.line;
+                left->column = tkn_pa.column;
             }
         }
     }
@@ -508,35 +578,69 @@ ExprNodePtr Parser::parse_Pri_exp(){
     }
     else if(peek().type == TokenType::KW_TRUE){
         match(TokenType::KW_TRUE);
-        return make_unique<node_types::TrueFalseLiteral>(true);
+        Token tkn_true = previous();
+        
+        auto node = make_unique<node_types::TrueFalseLiteral>(true);
+        node->line = tkn_true.line;
+        node->column = tkn_true.column;
+
+        return node;
     }
     else if(peek().type == TokenType::KW_FALSE){
         match(TokenType::KW_FALSE);
-        return make_unique<node_types::TrueFalseLiteral>(false);
+        Token tkn_false = previous();
+
+        auto node = make_unique<node_types::TrueFalseLiteral>(false);
+        node->line = tkn_false.line;
+        node->column = tkn_false.column;
+
+        return node;
     }
     else if(peek().type == TokenType::IDENTIFIER){
         Token tkn_id = peek();
         match(TokenType::IDENTIFIER);
 
+        auto node = make_unique<node_types::IdLiteral>(tkn_id.lexeme);
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
 
-        return make_unique<node_types::IdLiteral>(tkn_id.lexeme);
+        return node;
     }
     else if(peek().type == TokenType::NUMBER_LITERAL){
         match(TokenType::NUMBER_LITERAL);
-        return make_unique<node_types::NumLiteral>(std::stoll(previous().lexeme));
+        Token tkn_num = previous();
+
+        auto node = make_unique<node_types::NumLiteral>(std::stoll(previous().lexeme));
+        node->line = tkn_num.line;
+        node->column = tkn_num.column;
+
+        return node;
+
     }
     else if(peek().type == TokenType::KW_THIS){
         match(TokenType::KW_THIS);
-        return make_unique<node_types::ThisExpr>();
+        Token tkn_this = previous();
+
+        auto node = make_unique<node_types::ThisExpr>();
+        node->line = tkn_this.line;
+        node->column = tkn_this.column;
+
+        return node;
     }
     else if(peek().type == TokenType::KW_NEW){
         match(TokenType::KW_NEW);
+        Token tkn_new = previous();
         if(peek().type == TokenType::KW_INT){
             match(TokenType::KW_INT);
             match(TokenType::PUNC_LBRACKET);
             ExprNodePtr size = parse_Exp();
             match(TokenType::PUNC_RBRACKET);
-            return make_unique<node_types::NewArrayExpr>(std::move(size));
+            
+            auto node = make_unique<node_types::NewArrayExpr>(std::move(size));
+            node->line = tkn_new.line;
+            node->column = tkn_new.column;
+
+            return node;
         }
         else{
             Token tkn_class = peek();
@@ -544,7 +648,11 @@ ExprNodePtr Parser::parse_Pri_exp(){
             match(TokenType::PUNC_LPARENT);
             match(TokenType::PUNC_RPARENT);
 
-            return make_unique<node_types::NewObjExpr>(tkn_class.lexeme);
+            auto node = make_unique<node_types::NewObjExpr>(tkn_class.lexeme);
+            node->line = tkn_class.line;
+            node->column = tkn_class.column;
+
+            return node;
         }
     }
     else{
