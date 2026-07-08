@@ -1,14 +1,20 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <memory>
 #include <vector>
 #include <map>
 #include <string>
+#include "AST.h"
 #include "token.h"
 #include "symbol_table.h"
 #include "running_opts.h"
 #include "environment.h"
 
+/**
+ * @enum ErrorPhase
+ * @brief Compilation phase a parser error belongs to
+ */
 enum class ErrorPhase {SYNTACTIC, SEMANTIC};
 
 /**
@@ -31,9 +37,10 @@ class Parser{
      * @brief Initiates the parsing process.
      * * Acts as the main entry point for syntax analysis, starting from the
      * root production rule (Prog) and ensuring the entire token stream is consumed.
+     * * @returns the abstract syntax tree
      * * @throws runtime_error If extra tokens are found after the end of the program. 
      */
-    void parse();
+    AST parse();
 
     Environment& getEnv(){return env;}
 
@@ -61,6 +68,13 @@ class Parser{
     Token previous();
 
     /**
+     * @brief Checks whether the current token can start a command.
+     * @return true If lookahead is an .identifier "if", "while" or "System".
+     * @return false Otherwise.
+     */
+    bool peek_Cmd();
+
+    /**
      * @brief Consumes the current token if it matches the expected type.
      * * If the current type does not match the expected type, this method
      * immediately stops execution and throws a syntax error.
@@ -71,52 +85,72 @@ class Parser{
 
     /**
      * @brief Throws a runtime error interrupting the compilation process.
-     * @param msg The error information to display alongside the line and column data.
+     * @param msg The error information to display 
+     * @param phase the phase (SYNTACTIC or SEMANTIC) used in the label
      */
     void throw_error(const std::string& msg, ErrorPhase phase = ErrorPhase::SYNTACTIC); 
 
 
     /*==============================[GRAMMAR PRODUCTION RULES]==============================*/
     
-    /** @brief Parses the root program structure. */
-    void parse_Prog();
+    /** @brief Parses the root program structure and returns the AST root */
+    unique_ptr<ASTNode> parse_Prog();
 
-    /** @brief Parses the main class and its method signature. */
-    void parse_MainC();
+    /** @brief Parses the main class and returns its MainDecl node */
+    unique_ptr<ASTNode> parse_MainC();
 
-    /** @brief Parses the class declaration and inheritances. */
-    void parse_DefCl();
+    /** @brief Parses the class declaration and returns their ClassDecl nodes */
+    vector<unique_ptr<ASTNode>> parse_DefCl();
 
-    /** @brief Parses variable declarations. */
-    void parse_DefVar();
+    /** @brief Parses variable declarations into VarDecl nodes */
+    vector<unique_ptr<ASTNode>> parse_DefVar();
 
-    /** @brief Parses method signatures and bodies. */
-    void parse_DefMet();
+    /** @brief Parses method declarations into MethodDecl nodes */
+    vector<unique_ptr<ASTNode>> parse_DefMet();
 
-    /** @brief Parses data types (int, boolean, identifiers and arrays). */
-    void parse_Type();
-    std::string parse_Type_str();
+    /** @brief Parses data types and returns it as a string */
+    string parse_Type();
 
-    /** @brief Parses a list of arguments. */
-    void parse_Args();
+    /** @brief Parses a list of arguments into VarDecl nodes */
+    vector<unique_ptr<ASTNode>> parse_Args();
 
-    /** @brief Parses ... */
-    void parse_Lcom();
+    /** @brief Parses a non-empty command list */
+    vector<unique_ptr<ASTNode>> parse_Lcom();
     
-    /** @brief Parses execution commands (if/else, while, assignments, print). */
-    void parse_Cmd();
+    /** @brief Parses a single command and returns its node */
+    unique_ptr<ASTNode> parse_Cmd();
 
     /** @brief Parses a list of expressions (e.g., method call args). */
-    void parse_ListExp();
+    vector<unique_ptr<ExprNode>> parse_ListExp();
 
-    void parse_Exp();
-    void parse_And_exp();
-    void parse_Rel_exp();
-    void parse_Add_exp();
-    void parse_Mul_exp();
-    void parse_Un_exp();
-    void parse_Psf_exp();
-    void parse_Pri_exp();
+    /*
+    * Expression precedence cascade (lowest → highest):
+    *   Exp → And_exp → Rel_exp → Add_exp → Mul_exp → Un_exp → Psf_exp → Pri_exp
+    */
+
+    /** @brief Parses an expression (entry point) */
+    unique_ptr<ExprNode> parse_Exp();
+
+    /** @brief Parses logical AND; build AndExpr nodes */
+    unique_ptr<ExprNode> parse_And_exp();
+
+    /** @brief Parses relational comparison (>); builds RelExpr nodes */
+    unique_ptr<ExprNode> parse_Rel_exp();
+
+    /** @brief Parses additive operators (+ / -); builds AddExpr nodes */
+    unique_ptr<ExprNode> parse_Add_exp();
+
+    /** @brief Parses multiplicative operator (*); builds MulDivExpr nodes */
+    unique_ptr<ExprNode> parse_Mul_exp();
+
+    /** @brief Parses negation (!); builds NegateExpr nodes */
+    unique_ptr<ExprNode> parse_Un_exp();
+
+    /** @brief Parses postfix acces ([], .length, .method(...) etc); builds PrimaryAccesExpr nodes */
+    unique_ptr<ExprNode> parse_Psf_exp();
+
+    /** @brief Parses a primary expression (highest precedence). */
+    unique_ptr<ExprNode> parse_Pri_exp();
 };
 
 #endif

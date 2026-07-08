@@ -1,10 +1,16 @@
 #include "../headers/parser.h"
 #include "../headers/usefultools.h"
+#include <memory>
 #include <stdexcept>
 #include <limits.h>
+#include <vector>
 using namespace std;
 
 Parser::Parser(const std::vector<Token>& tokenss, RunningOptions opts) : tokens{tokenss}, m_running_opts{opts} {}
+
+using NodePtr = std::unique_ptr<ASTNode>;
+using NodeVec = std::vector<NodePtr>;
+using ExprNodePtr = std::unique_ptr<ExprNode>;
 
 
 Token Parser::peek(){
@@ -30,19 +36,31 @@ Token Parser::previous(){
     return tokens[lookahead-1];
 }
 
+bool Parser::peek_Cmd(){
+    if ( peek().type == TokenType::IDENTIFIER ||
+            peek().type == TokenType::KW_IF ||
+            peek().type == TokenType::KW_WHILE ||
+            peek().type == TokenType::KW_SYSTEM){
+                return true;
+            }
+
+    return false;
+}
+
 
 void Parser::throw_error(const std::string& msg, ErrorPhase phase){
     Token curr_token = peek();
 
     string label = (phase == ErrorPhase::SEMANTIC) ? "[ERRO SEMÂNTICO]" : "[ERRO SINTÁTICO]";
 
-    string full_msg = label + " Na linha " +
+    string full_msg = label +
+                    " na linha " +
                     to_string(curr_token.line) +
                     ", coluna " +
-                    to_string(curr_token.column) + 
+                    to_string(curr_token.column) +
                     ": " +
                     msg;
-    
+
 
     if(curr_token.type == TokenType::IDENTIFIER && m_running_opts.suggest_corrections){
         string best_match;
@@ -84,151 +102,176 @@ void Parser::match(TokenType expected_type, const string& custom_msg){
 }
 
 
-void Parser::parse(){
-    parse_Prog();
+AST Parser::parse(){
+    AST tree(parse_Prog());
 
     if(lookahead < tokens.size() && peek().type != TokenType::END_OF_FILE){
         throw_error("Presença de tokens após EOF.");
     }
+    return tree;
 }
 
 
-void Parser::parse_Prog(){
-    parse_MainC();
-    parse_DefCl();
+NodePtr Parser::parse_Prog(){
+    auto m = parse_MainC();
+    auto d = parse_DefCl();
+    return make_unique<node_types::ProgNode>(std::move(m), std::move(d));
 }
 
 
-void Parser::parse_MainC(){
-    //class ABC { 
+NodePtr Parser::parse_MainC(){
+    //class ABC {
     match(TokenType::KW_CLASS);
-    Token tkn_class = peek();
     match(TokenType::IDENTIFIER);
-    env.insert(tkn_class.lexeme, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
+    Token tkn_class = previous();
+    string main_class_id = tkn_class.lexeme;
+    env.insert(main_class_id, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
     match(TokenType::PUNC_LBRACE);
-    env.addTable("classe " + tkn_class.lexeme);
+    env.addTable("classe " + main_class_id);
 
     //public static void main(String[] args) {
     match(TokenType::KW_PUBLIC);
     match(TokenType::KW_STATIC);
     match(TokenType::KW_VOID);
     match(TokenType::KW_MAIN);
-
-    env.addTable("main");
+    env.addTable("método main");
 
     match(TokenType::PUNC_LPARENT);
     match(TokenType::KW_STRING);
     match(TokenType::PUNC_LBRACKET);
     match(TokenType::PUNC_RBRACKET);
-
-    Token tkn_args = peek();
     match(TokenType::IDENTIFIER);
-
-    env.insert(tkn_args.lexeme, "String[]", SymbolKind::VARIABLE, env.get_scope(), tkn_args.line, tkn_args.column);
+    Token tkn_args = previous();
+    string args_id = tkn_args.lexeme;
+    env.insert(args_id, "String[]", SymbolKind::VARIABLE, env.get_scope(), tkn_args.line, tkn_args.column);
     match(TokenType::PUNC_RPARENT);
     match(TokenType::PUNC_LBRACE);
-    parse_Lcom();
+    auto command_list = parse_Lcom();
     match(TokenType::PUNC_RBRACE);
     env.voltar();
     match(TokenType::PUNC_RBRACE);
     env.voltar();
+    return make_unique<node_types::MainDecl>(main_class_id, args_id, std::move(command_list));
 }
 
 
-void Parser::parse_DefCl(){
+NodeVec Parser::parse_DefCl(){
+    NodeVec class_definitions;
     while(peek().type == TokenType::KW_CLASS){
         match(TokenType::KW_CLASS);
-
-        Token tkn_class = peek();
         match(TokenType::IDENTIFIER);
+        Token tkn_class = previous();
+        string class_id = tkn_class.lexeme;
 
-        //std::string parent = "";
+        bool extends = false;
+        string extends_id = "";
         if(peek().type == TokenType::KW_EXTENDS){
             match(TokenType::KW_EXTENDS);
-            //parent = peek().lexeme;
             match(TokenType::IDENTIFIER);
+            extends = true;
+            extends_id = previous().lexeme;
         }
 
-        bool success = env.insert(tkn_class.lexeme, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
-
+        bool success = env.insert(class_id, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
         if(!success){
-            throw_error("Classe já declarada: " + tkn_class.lexeme, ErrorPhase::SEMANTIC);
+            throw_error("Classe já declarada: " + class_id, ErrorPhase::SEMANTIC);
         }
 
         match(TokenType::PUNC_LBRACE);
-        env.addTable("classe " + tkn_class.lexeme);
-        parse_DefVar();
-        parse_DefMet();
+        env.addTable("classe " + class_id);
+        NodeVec vars(parse_DefVar());
+        NodeVec methods(parse_DefMet());
         match(TokenType::PUNC_RBRACE);
         env.voltar();
+
+        auto node = make_unique<node_types::ClassDecl>(class_id, std::move(vars), std::move(methods), extends, extends_id);
+        node->line = tkn_class.line;
+        node->column = tkn_class.column;
+
+        class_definitions.push_back(std::move(node));
     }
+    return class_definitions;
 }
 
 
-void Parser::parse_DefVar() {
+NodeVec Parser::parse_DefVar() {
     // Uses lookahead (peek_next) to resolve structural ambiguity.
+    NodeVec vars;
     while ( peek().type == TokenType::KW_INT ||
             peek().type == TokenType::KW_BOOLEAN ||
             (peek().type == TokenType::IDENTIFIER && peek_next().type == TokenType::IDENTIFIER)){
-        std::string tkn_type = parse_Type_str();
-        Token tkn_id = peek();
+        string type = parse_Type();
         match(TokenType::IDENTIFIER);
+        Token tkn_id = previous();
+        string id = tkn_id.lexeme;
 
-        bool success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
-
+        bool success = env.insert(id, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
         if(!success){
-            throw_error("Variável já declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
+            throw_error("Variável já declarada neste escopo: " + id, ErrorPhase::SEMANTIC);
         }
+
         match(TokenType::PUNC_SEMICOLON);
+
+        auto node = make_unique<node_types::VarDecl>(id, type);
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
+
+        vars.push_back(std::move(node));
     }
+    return vars;
 }
 
 
-void Parser::parse_DefMet() {
+NodeVec Parser::parse_DefMet() {
+    NodeVec methods;
     while(peek().type == TokenType::KW_PUBLIC){
         match(TokenType::KW_PUBLIC);
-        
-        std::string tkn_return_type = parse_Type_str(); 
-
-        Token tkn_met = peek();
+        string type = parse_Type();
         match(TokenType::IDENTIFIER);
+        Token tkn_met = previous();
+        string id = tkn_met.lexeme;
 
-        bool success = env.insert(tkn_met.lexeme, tkn_return_type, SymbolKind::METHOD, env.get_scope(), tkn_met.line, tkn_met.column);
-
+        bool success = env.insert(id, type, SymbolKind::METHOD, env.get_scope(), tkn_met.line, tkn_met.column);
         if(!success){
-            throw_error("Método já declarado: " + tkn_met.lexeme, ErrorPhase::SEMANTIC);
+            throw_error("Método já declarado: " + id, ErrorPhase::SEMANTIC);
         }
 
-        env.addTable("método " + tkn_met.lexeme);  // criar tabela antes de ler os args para as variaveis de parse_Args e parse_DefVar ficarem jutnas
+        env.addTable("método " + id);  // tabela antes dos args para parâmetros e DefVar ficarem juntos
 
         match(TokenType::PUNC_LPARENT);
+        NodeVec args;
         if(peek().type != TokenType::PUNC_RPARENT){
-            parse_Args();
+            args = parse_Args();
         }
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_LBRACE);
-        parse_DefVar();
-        
+        NodeVec vars = parse_DefVar();
+        NodeVec commands;
         while ( peek().type == TokenType::IDENTIFIER ||
                 peek().type == TokenType::KW_IF ||
                 peek().type == TokenType::KW_WHILE ||
-                peek().type == TokenType::KW_SYSTEM || 
-                peek().type == TokenType::PUNC_LBRACE){
-                parse_Cmd();
-            }
-
+                peek().type == TokenType::KW_SYSTEM){
+            commands = parse_Lcom();
+        }
         match(TokenType::KW_RETURN);
-        parse_Exp();
+        ExprNodePtr expr = parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
         match(TokenType::PUNC_RBRACE);
         env.voltar();
+        
+        auto node = make_unique<node_types::MethodDecl>(id, type, std::move(args), std::move(commands), std::move(vars), std::move(expr));
+        node->line = tkn_met.line;
+        node->column = tkn_met.column;
+
+        methods.push_back(std::move(node));
     }
+    return methods;
 }
 
-std::string Parser::parse_Type_str() {
+
+string Parser::parse_Type() {
     if (peek().type == TokenType::KW_INT) {
         match(TokenType::KW_INT);
-
         if (peek().type == TokenType::PUNC_LBRACKET) {
             match(TokenType::PUNC_LBRACKET);
             match(TokenType::PUNC_RBRACKET);
@@ -243,257 +286,361 @@ std::string Parser::parse_Type_str() {
     }
 
     else {
-        std::string name = peek().lexeme;
         match(TokenType::IDENTIFIER);
-        return name;
-    }
-}
-
-void Parser::parse_Type() {
-    if (peek().type == TokenType::KW_INT) {
-        match(TokenType::KW_INT);
-
-        if (peek().type == TokenType::PUNC_LBRACKET) {
-            match(TokenType::PUNC_LBRACKET);
-            match(TokenType::PUNC_RBRACKET);
-        }
-    }
-
-    else if (peek().type == TokenType::KW_BOOLEAN) {
-        match(TokenType::KW_BOOLEAN);
-    }
-
-    else {
-        match(TokenType::IDENTIFIER);
+        return previous().lexeme;
     }
 }
 
 
-void Parser::parse_Args() {
-    std::string tkn_type = parse_Type_str();
-    Token tkn_id = peek();
+NodeVec Parser::parse_Args() {
+    NodeVec args;
+
+    string type = parse_Type();
     match(TokenType::IDENTIFIER);
+    Token tkn_id = previous();
 
-    //isso aq vai dar errado ja q podemos passar uma classe como argumento........ e por enquanto so tamo deixando variavel
-    bool success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
-
+    bool success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
     if(!success){
         throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
     }
     
+    auto node = make_unique<node_types::VarDecl>(tkn_id.lexeme, type);
+    node->line = tkn_id.line;
+    node->column = tkn_id.column;
+
+    args.push_back(std::move(node));
+
+
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
-        tkn_type = parse_Type_str();
-        tkn_id = peek();
+        type = parse_Type();
         match(TokenType::IDENTIFIER);
+        tkn_id = previous();
 
-        //isso aq vai dar errado pt.2 ja q podemos passar uma classe como argumento........ e por enquanto so tamo deixando variavel
-        success = env.insert(tkn_id.lexeme, tkn_type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
-
+        success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
         if(!success){
             throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
+        
+        auto node = make_unique<node_types::VarDecl>(tkn_id.lexeme, type);
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
+        
+        args.push_back(std::move(node));
+
     }
+    return args;
 }
 
-void Parser::parse_Lcom(){
-    parse_Cmd();
 
-    // { agindo como um iniciador de comando para resolver bugs de if { exp } ou if exp 
+NodeVec Parser::parse_Lcom(){
+    NodeVec commands;
+    commands.push_back(parse_Cmd());
+
     while ( peek().type == TokenType::IDENTIFIER ||
             peek().type == TokenType::KW_IF ||
             peek().type == TokenType::KW_WHILE ||
-            peek().type == TokenType::KW_SYSTEM || 
-            peek().type == TokenType::PUNC_LBRACE){
-                parse_Cmd();
-            }
+            peek().type == TokenType::KW_SYSTEM){
+        commands.push_back(parse_Cmd());
+    }
+    return commands;
 }
 
-void Parser::parse_Cmd() {
-    if(peek().type == TokenType::PUNC_LBRACE){
-        match(TokenType::PUNC_LBRACE);
-        env.addTable("bloco");
 
-        if(peek().type != TokenType::PUNC_RBRACE){
-            parse_Lcom();
-        }
-        match(TokenType::PUNC_RBRACE);
-        env.voltar();
-    }
-    else if (peek().type == TokenType::KW_IF) {
-        match(TokenType::KW_IF);
+NodePtr Parser::parse_Cmd() {
+    if (peek().type == TokenType::KW_IF) {
+        Token tkn_if = peek();
+        match(TokenType::KW_IF); 
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        auto ifelse_exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
-        parse_Cmd();
+        match(TokenType::PUNC_LBRACE);
+        auto if_cmds = peek_Cmd() ? parse_Lcom() : NodeVec{};
+        match(TokenType::PUNC_RBRACE);
+        bool has_else = false;
+        NodeVec else_cmds = {};
 
         //I --> else { Lcom } | lambda
         if(peek().type == TokenType::KW_ELSE){
+            has_else = true;
             match(TokenType::KW_ELSE);
-            parse_Cmd();
+            match(TokenType::PUNC_LBRACE);
+            else_cmds = peek_Cmd() ? parse_Lcom() : NodeVec{};
+            match(TokenType::PUNC_RBRACE);
         }
+
+        auto node =  make_unique<node_types::IfElseDecl>(std::move(ifelse_exp), std::move(if_cmds), has_else, std::move(else_cmds));
+        node->line = tkn_if.line;
+        node->column = tkn_if.column;
+
+        return node;
     }
     else if (peek().type == TokenType::KW_WHILE) {
+        Token tkn_while = peek();
         match(TokenType::KW_WHILE);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        auto while_exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
-        parse_Cmd();
+        match(TokenType::PUNC_LBRACE);
+        auto while_cmds = peek_Cmd() ? parse_Lcom() : NodeVec{};
+        match(TokenType::PUNC_RBRACE);
+
+        auto node = make_unique<node_types::WhileDecl>(std::move(while_exp), std::move(while_cmds));
+        node->line = tkn_while.line;
+        node->column = tkn_while.column;
+
+        return node;
     }
     else if (peek().type == TokenType::KW_SYSTEM) {
+        Token tkn_print = peek();
         match(TokenType::KW_SYSTEM);
         match(TokenType::PUNC_DOT);
         match(TokenType::KW_OUT);
         match(TokenType::PUNC_DOT);
         match(TokenType::KW_PRINTLN);
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        auto print_exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
         match(TokenType::PUNC_SEMICOLON);
+
+        auto node = make_unique<node_types::PrintLn>(std::move(print_exp));
+        node->line = tkn_print.line;
+        node->column = tkn_print.column;
+
+        return node;
     }
     // left factoring applied here
     else {
-        Token tkn_id = peek();
         match(TokenType::IDENTIFIER);
-        
-        Symbol* symb = env.lookup(tkn_id.lexeme);
-        if(symb == nullptr){
-            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
-        }
+        Token tkn_id = previous();
+
+        bool is_array = false;
+        ExprNodePtr idx_exp = nullptr;
 
         if (peek().type == TokenType::PUNC_LBRACKET) {
+            is_array = true;
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp();
+            idx_exp = parse_Exp();
             match(TokenType::PUNC_RBRACKET);
         }
 
         match(TokenType::OP_ASSIGN);
-        parse_Exp();
+        auto rhs_exp = parse_Exp();
         match(TokenType::PUNC_SEMICOLON);
+
+        auto node = make_unique<node_types::AssignDecl>(tkn_id.lexeme, is_array, std::move(idx_exp), std::move(rhs_exp));
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
+
+        return node;
     }
 }
 
-void Parser::parse_Exp() {
-    parse_And_exp();
+
+ExprNodePtr Parser::parse_Exp() {
+    return parse_And_exp();
 }
 
-void Parser::parse_And_exp(){
-    parse_Rel_exp();
+ExprNodePtr Parser::parse_And_exp(){
+    ExprNodePtr left = parse_Rel_exp();
 
     while(peek().type == TokenType::OP_AND){
+        Token tkn_op = peek();
         match(TokenType::OP_AND);
-        parse_Rel_exp();
+        ExprNodePtr right = parse_Rel_exp();
+
+        left = make_unique<node_types::AndExpr>(std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
+
+    return left;
 }
 
-void Parser::parse_Rel_exp(){
-    parse_Add_exp();
+ExprNodePtr Parser::parse_Rel_exp(){
+    ExprNodePtr left = parse_Add_exp();
 
     while(peek().type == TokenType::OP_GREATER){
+        Token tkn_op = peek();
         match(TokenType::OP_GREATER);
-        parse_Add_exp();
+        ExprNodePtr right = parse_Add_exp();
+        left = make_unique<node_types::RelExpr>(std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
+
+    return left;
 }
 
-void Parser::parse_Add_exp(){
-    parse_Mul_exp();
+ExprNodePtr Parser::parse_Add_exp(){
+    ExprNodePtr left = parse_Mul_exp();
+    node_types::AddExpr::Operation op;
 
     while(peek().type == TokenType::OP_PLUS || peek().type == TokenType::OP_MINUS){
+        Token tkn_op = peek();
         if(peek().type == TokenType::OP_PLUS){
             match(TokenType::OP_PLUS);
+            op = node_types::AddExpr::Operation::SUM;
         }
         else{
             match(TokenType::OP_MINUS);
+            op = node_types::AddExpr::Operation::SUB;
         }
-        parse_Mul_exp();
+        ExprNodePtr right = parse_Mul_exp();
+        left = make_unique<node_types::AddExpr>(op, std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
+    return left;
 }
 
-void Parser::parse_Mul_exp(){
-    parse_Un_exp();
+ExprNodePtr Parser::parse_Mul_exp(){
+    ExprNodePtr left = parse_Un_exp();
 
     while(peek().type == TokenType::OP_ASTERISK){
+        Token tkn_op = peek();
         match(TokenType::OP_ASTERISK);
-        parse_Un_exp();
+        ExprNodePtr right = parse_Un_exp();
+        left = make_unique<node_types::MulDivExpr>(node_types::MulDivExpr::Operation::MUL, std::move(left), std::move(right));
+        left->line = tkn_op.line;
+        left->column = tkn_op.column;
     }
+    return left;
 }
 
-void Parser::parse_Un_exp(){
+ExprNodePtr Parser::parse_Un_exp(){
     if(peek().type == TokenType::OP_NOT){
+        Token tkn_op = peek();
         match(TokenType::OP_NOT);
-        parse_Un_exp();
+        ExprNodePtr un_exp_op = parse_Un_exp();
+
+        auto node = make_unique<node_types::NegateExpr>(true, std::move(un_exp_op));
+        node->line = tkn_op.line;
+        node->column = tkn_op.column;
+
+        return node;
     }
     else{
-        parse_Psf_exp();
+        return parse_Psf_exp();
     }
 }
 
-void Parser::parse_Psf_exp(){
-    parse_Pri_exp();
+ExprNodePtr Parser::parse_Psf_exp(){
+    ExprNodePtr left = parse_Pri_exp();
 
     while(peek().type == TokenType::PUNC_LBRACKET || peek().type == TokenType::PUNC_DOT){
+        Token tkn_pa = peek();
         if(peek().type == TokenType::PUNC_LBRACKET){
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp();
+            vector<ExprNodePtr> access;
+            ExprNodePtr idx = parse_Exp();
+            access.push_back(std::move(idx));
             match(TokenType::PUNC_RBRACKET);
+            left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::ARRAY_ACCESS, std::move(access), vector<unique_ptr<ExprNode>>{});
+            left->line = tkn_pa.line;
+            left->column = tkn_pa.column;
         }
         else{
             match(TokenType::PUNC_DOT);
             //left factoring applied here
             if(peek().type == TokenType::KW_LENGTH){
                 match(TokenType::KW_LENGTH);
+                left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::LENGTH, vector<unique_ptr<ExprNode>>{}, vector<unique_ptr<ExprNode>>{});
+                left->line = tkn_pa.line;
+                left->column = tkn_pa.column;
             }
             else{
                 match(TokenType::IDENTIFIER);
+                string method_id = previous().lexeme;
                 match(TokenType::PUNC_LPARENT);
-
+                std::vector<unique_ptr<ExprNode>> args = {};
                 //handling zero argument function
                 if(peek().type != TokenType::PUNC_RPARENT){
-                    parse_ListExp(); 
+                    args = parse_ListExp();
                 }
 
                 match(TokenType::PUNC_RPARENT);
+                left = make_unique<node_types::PrimaryAccessExpr>(std::move(left), node_types::PrimaryAccessExpr::PEModifier::METHOD_CALL, vector<unique_ptr<ExprNode>>{}, std::move(args), method_id);
+                left->line = tkn_pa.line;
+                left->column = tkn_pa.column;
             }
         }
-        
     }
+    return left;
 }
 
-void Parser::parse_Pri_exp(){
+ExprNodePtr Parser::parse_Pri_exp(){
     if(peek().type == TokenType::PUNC_LPARENT){
         match(TokenType::PUNC_LPARENT);
-        parse_Exp();
+        ExprNodePtr exp = parse_Exp();
         match(TokenType::PUNC_RPARENT);
+        return make_unique<node_types::PrimaryExpr>(std::move(exp));
     }
     else if(peek().type == TokenType::KW_TRUE){
         match(TokenType::KW_TRUE);
+        Token tkn_true = previous();
+        
+        auto node = make_unique<node_types::TrueFalseLiteral>(true);
+        node->line = tkn_true.line;
+        node->column = tkn_true.column;
+
+        return node;
     }
     else if(peek().type == TokenType::KW_FALSE){
         match(TokenType::KW_FALSE);
+        Token tkn_false = previous();
+
+        auto node = make_unique<node_types::TrueFalseLiteral>(false);
+        node->line = tkn_false.line;
+        node->column = tkn_false.column;
+
+        return node;
     }
     else if(peek().type == TokenType::IDENTIFIER){
         Token tkn_id = peek();
         match(TokenType::IDENTIFIER);
 
-        Symbol* symb = env.lookup(tkn_id.lexeme);
-        if(symb == nullptr){
-            throw_error("Variável não declarada neste escopo: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
-        }
+        auto node = make_unique<node_types::IdLiteral>(tkn_id.lexeme);
+        node->line = tkn_id.line;
+        node->column = tkn_id.column;
 
+        return node;
     }
     else if(peek().type == TokenType::NUMBER_LITERAL){
         match(TokenType::NUMBER_LITERAL);
+        Token tkn_num = previous();
+
+        auto node = make_unique<node_types::NumLiteral>(std::stoll(previous().lexeme));
+        node->line = tkn_num.line;
+        node->column = tkn_num.column;
+
+        return node;
+
     }
     else if(peek().type == TokenType::KW_THIS){
         match(TokenType::KW_THIS);
+        Token tkn_this = previous();
+
+        auto node = make_unique<node_types::ThisExpr>();
+        node->line = tkn_this.line;
+        node->column = tkn_this.column;
+
+        return node;
     }
     else if(peek().type == TokenType::KW_NEW){
         match(TokenType::KW_NEW);
+        Token tkn_new = previous();
         if(peek().type == TokenType::KW_INT){
             match(TokenType::KW_INT);
             match(TokenType::PUNC_LBRACKET);
-            parse_Exp();
+            ExprNodePtr size = parse_Exp();
             match(TokenType::PUNC_RBRACKET);
+            
+            auto node = make_unique<node_types::NewArrayExpr>(std::move(size));
+            node->line = tkn_new.line;
+            node->column = tkn_new.column;
+
+            return node;
         }
         else{
             Token tkn_class = peek();
@@ -501,21 +648,25 @@ void Parser::parse_Pri_exp(){
             match(TokenType::PUNC_LPARENT);
             match(TokenType::PUNC_RPARENT);
 
-            Symbol* symb = env.lookup(tkn_class.lexeme);
-            if(symb == nullptr || (*symb).kind != SymbolKind::CLASS){
-                throw_error("Classe não declarada: " + tkn_class.lexeme, ErrorPhase::SEMANTIC);
-            }
+            auto node = make_unique<node_types::NewObjExpr>(tkn_class.lexeme);
+            node->line = tkn_class.line;
+            node->column = tkn_class.column;
+
+            return node;
         }
     }
     else{
         throw_error("Esperava o começo de uma Exp.");
     }
+    return nullptr;
 }
 
-void Parser::parse_ListExp() {
-    parse_Exp();
+vector<ExprNodePtr> Parser::parse_ListExp() {
+    vector<ExprNodePtr> ret_vec;
+    ret_vec.push_back(parse_Exp());
     while(peek().type == TokenType::PUNC_COMMA){
         match(TokenType::PUNC_COMMA);
-        parse_Exp();
+        ret_vec.push_back(parse_Exp());
     }
+    return ret_vec;
 }

@@ -31,4 +31,10 @@ struct RunningOptions{
     bool suggest_corrections = false;
 
     std::string symbtable_output_file_path = "";
+
+    /** @brief Path to the file where the AST tree printout will be saved.*/
+    std::string ast_output_file_path = "";
+ 
+    /** @brief Flag indicating whether the AST tree should be printed to a file.*/
+    bool ast_output = false;
 };

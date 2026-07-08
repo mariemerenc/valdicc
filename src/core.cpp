@@ -3,6 +3,7 @@
 #include "../headers/lexer.h"
 #include "../headers/parser.h"
 #include "../headers/symbol_table.h"
+#include "../headers/type_checker.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -48,7 +49,7 @@ void Core::run(){
     Parser parser(tokens, m_running_opts);
 
     try{
-        parser.parse();
+        AST tree = parser.parse();
 
         if(m_running_opts.symbtable_output){
             std::ofstream symb_outfile{m_running_opts.symbtable_output_file_path};
@@ -58,6 +59,17 @@ void Core::run(){
                 symb_outfile.close();
             }
         }
+
+        if(m_running_opts.ast_output){
+            std::ofstream ast_outfile{m_running_opts.ast_output_file_path};
+
+            if(ast_outfile.is_open()){
+                ast_outfile << tree.print_tree();
+                ast_outfile.close();
+            }
+        }
+        
+        TypeChecker(tree.root()).check();
     }
     catch(const exception& e){
         cerr << e.what() << '\n';
