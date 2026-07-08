@@ -29,6 +29,9 @@ class TypeChecker{
     std::string check_variable(std::string id, ASTNode* location); // 4.3 semantica das variaveis 
     void check_method(node_types::MethodDecl* met); // 4.6.1 semantica da chamada de metodos (tipo do retorno) e 4.3.1 semantica das variaveis - parametros do metodo ... ? nao sei na real
     void check_command(ASTNode* cmd); // 4.4 semantica dos comandos
+    void check_inheritance(); // resolver problemas de heranca circular
+    void check_main(ASTNode* main); // nao eh nem check_class nem check_method entao ta ai sozinho
+    bool type_exists(string str); //check_type_of(expr) nao verifica se o tipo realmente existe... isso eh importante pros casos de tipo ser um Id
 
     void throw_semantic_error(ASTNode* node, const std::string& msg);
 
