@@ -16,6 +16,7 @@ class TypeChecker{
     std::unordered_map<string, vector<string>>  method_params; // metodo | tipos dos params
     std::unordered_map<string, string> method_return; // metodo | tipo do retorno
     std::unordered_map<string, std::unordered_map<string, string>>  class_attributes; //classe | [atributo | tipo]
+    // OBS.: method_params e method_return usam como chave Classe.metodo !!! 
 
     // [ATUAIS/contextuais?] informaçoes referentes a "localizaçao" ou contexto na AST
     string current_class; //nome da classe sendo checada
@@ -32,6 +33,8 @@ class TypeChecker{
     void check_inheritance(); // resolver problemas de heranca circular
     void check_main(ASTNode* main); // nao eh nem check_class nem check_method entao ta ai sozinho
     bool type_exists(string str); //check_type_of(expr) nao verifica se o tipo realmente existe... isso eh importante pros casos de tipo ser um Id
+    bool compatible(string expected, string found); 
+    string lookup_method_key(string cl, string met); // metodo p retornar a chave: Classe.metodo
 
     void throw_semantic_error(ASTNode* node, const std::string& msg);
 

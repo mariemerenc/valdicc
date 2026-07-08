@@ -3,6 +3,7 @@
 #include "../headers/lexer.h"
 #include "../headers/parser.h"
 #include "../headers/symbol_table.h"
+#include "../headers/type_checker.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -67,6 +68,8 @@ void Core::run(){
                 ast_outfile.close();
             }
         }
+        
+        TypeChecker(tree.root()).check();
     }
     catch(const exception& e){
         cerr << e.what() << '\n';
