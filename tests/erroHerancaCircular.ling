@@ -1,0 +1,15 @@
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(1000);
+    }
+}
+
+class A extends B {
+    int a;
+    public int get_a() { return a; }
+}
+
+class B extends A {
+    int b;
+    public int get_b() {return b;}
+}

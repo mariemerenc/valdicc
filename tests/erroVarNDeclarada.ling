@@ -1,0 +1,14 @@
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(1000);
+    }
+}
+
+class Eita {
+    public int metodo(){
+        int idx;
+        idx = teste;
+
+        return idx;
+    }
+}
