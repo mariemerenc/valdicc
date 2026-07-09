@@ -67,6 +67,9 @@ static vector<ASTNode*> get_children_for(ASTNode* node){
             for(auto& p : n->param_list){
                 filhos.push_back(p.get());
             }
+            for(auto& p : n->local_vars){
+                filhos.push_back(p.get());
+            }
             for(auto& c : n->commands_list){
                 filhos.push_back(c.get());
             }

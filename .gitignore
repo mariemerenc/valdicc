@@ -4,4 +4,4 @@ compile_commands.json
 .cache
 docs/html
 docs/latex
-saida.txt
+saida*.txt

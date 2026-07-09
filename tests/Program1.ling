@@ -1,0 +1,41 @@
+/**
+ * 
+ * aqui o main nao vai fazer referencia futura a nada
+ */
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(1000);
+    }
+}
+
+// mais testes de comentario lalalalalalala
+
+class Calculadora {
+    int ult_resp;
+
+    public int sub(int a, int b) {
+        int temp;
+        temp = a - b;
+        ult_resp = temp;
+        return temp;
+    }
+}
+
+//testando chamar calculadora em teste
+
+class Teste{
+    public int execTeste(){
+        int aux;
+        int status;
+        
+        aux = new Calculadora().sub(10, 20);
+        
+        while(aux > 20){
+            status = 1;
+            System.out.println(status);
+            aux = aux - 1;
+        }
+        
+        return status;
+    }
+}

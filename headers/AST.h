@@ -65,7 +65,7 @@ public:
         INT, BOOL, ID, INT_ARR
     }; 
 protected:
-    ExprType type; ///< Inferred type of the expression.
+    ExprType type; ///< type of the expression.
     union DataVal{
         double floatval;
         int64_t intval;
