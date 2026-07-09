@@ -1,0 +1,14 @@
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(1000);
+    }
+}
+
+class Teste {
+    public boolean metodo(){
+        int a;
+        a = a + 1;
+
+        return a;
+    }
+}

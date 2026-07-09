@@ -1,0 +1,16 @@
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(1000);
+    }
+}
+
+class Vazia {
+    public int Execucao(){
+        int i;
+        boolean b;
+
+        i = 1 + b;
+
+        return i;
+    }
+}

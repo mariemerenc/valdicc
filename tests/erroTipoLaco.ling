@@ -1,0 +1,16 @@
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(1000);
+    }
+}
+
+class Vazia {
+    public int metodo(){
+        int a;
+        while(a){
+            a = a+1;
+        }
+
+        return a;
+    }
+}

@@ -1,0 +1,14 @@
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(1000);
+    }
+}
+
+class Vazia {
+    public int metodo(){
+        int x;
+        x = true;
+
+        return x;
+    }
+}
