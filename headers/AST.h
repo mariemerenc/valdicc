@@ -18,6 +18,7 @@ namespace{ using std::vector, std::string, std::unique_ptr;}
  */
 class ASTNode{
 public:
+    virtual ~ASTNode() = default;
     int line = 0, column = 0;
     /** @brief Enumerates every grammar production representable as an AST node.*/
     enum class NodeRule{
