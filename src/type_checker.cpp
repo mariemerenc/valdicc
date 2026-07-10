@@ -47,13 +47,19 @@ void TypeChecker::collect(){
         //para cada variavel da classe
         for(auto& un_ptr_v : cl->variables){
             auto *var = dynamic_cast<VarDecl*>(un_ptr_v.get());
-
             // se encontrar alguma ocorrencia do nome dessa var na classe atual, erro
             if(class_attributes[cl->class_id].count(var->var_id) > 0){
                 throw_semantic_error(var, "atributo duplicado: " + var->var_id);
             }
+            if(var->real_var_type->real_type == Type::type_kind::CLASS_TYPE){
+                auto class_var = dynamic_cast<ClassType*>(var->real_var_type);
+                auto class_fields = class_attributes[class_var->class_name];
+                if(class_fields.empty()){
+                    throw_semantic_error(var, "tipo está sendo usado antes da definição: " + var->var_id + " tipo: " + class_var->class_name);
+                }
+            }
+            class_attributes[cl->class_id][var->var_id] = var->real_var_type;
 
-            class_attributes[cl->class_id][var->var_id] = var->var_type;
         }
 
         // para cara metodo da classe
@@ -281,7 +287,7 @@ string TypeChecker::check_variable(string v_id, ASTNode* location){
     // enquanto tiver registro da classe atual no mapa
     while(class_attributes.count(curr_cl) > 0){
         if(class_attributes[curr_cl].count(v_id) > 0){
-            return class_attributes[curr_cl][v_id];
+            return class_attributes[curr_cl][v_id]->get_type_as_string();
         }
 
         // se a classe atual nao tem superclasse

@@ -2,6 +2,7 @@
 #define TYPE_CHECKER_H
 
 #include <unordered_map>
+#include "types.h"
 #include "AST.h"
 
 class TypeChecker{
@@ -15,7 +16,7 @@ class TypeChecker{
     std::unordered_map<string, string> class_parent; // classe | superclasse (p/ guardar herança)
     std::unordered_map<string, vector<string>>  method_params; // metodo | tipos dos params
     std::unordered_map<string, string> method_return; // metodo | tipo do retorno
-    std::unordered_map<string, std::unordered_map<string, string>>  class_attributes; //classe | [atributo | tipo]
+    std::unordered_map<string, std::unordered_map<string, Type*>>  class_attributes; //classe | [atributo | tipo]
     // OBS.: method_params e method_return usam como chave Classe.metodo !!! 
 
     // [ATUAIS/contextuais?] informaçoes referentes a "localizaçao" ou contexto na AST

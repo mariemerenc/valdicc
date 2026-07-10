@@ -2,6 +2,7 @@
 #define SYMBOL_H
 
 #include <string>
+#include "types.h"
 
 /**
  * @brief Defines the kind of a symbol within the compiler
@@ -18,6 +19,7 @@ enum class SymbolKind {
 struct Symbol{
     std::string name;   ///< The exact string lexeme of the identifier.
     std::string type;   ///< The data type of the symbol.
+    Type* type_data;
     SymbolKind kind;    ///< The classification/kind of the symbol.
     int scope;          ///< The scope depth level where the symbol was declared.
     int line;           ///< The line number in the source file where it was declared.

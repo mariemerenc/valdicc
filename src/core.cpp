@@ -2,11 +2,13 @@
 #include "../headers/preprocessor.h"
 #include "../headers/lexer.h"
 #include "../headers/parser.h"
+#include "../headers/code_gen.h"
 #include "../headers/symbol_table.h"
 #include "../headers/type_checker.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <string>
 #include <vector>
 
 void Core::run(){
@@ -70,6 +72,7 @@ void Core::run(){
         }
         
         TypeChecker(tree.root()).check();
+        // string generated_code = CodeGenerator(tree.root(), parser.getEnv()).code;
     }
     catch(const exception& e){
         cerr << e.what() << '\n';
