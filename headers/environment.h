@@ -25,6 +25,11 @@ class Environment{
     bool insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column);
 
     /**
+    * @brief Overload of the insert function to add the real type
+    */
+    bool insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column, Type* real_type);
+
+    /**
      * @brief Searches for a name starting from the current scope, expanding to the global scope.
      * @return Symbol* The found symbol, or nullptr if undeclared.
      */    
