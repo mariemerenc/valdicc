@@ -32,6 +32,12 @@ bool Environment::insert(const std::string& name, const std::string& type, Symbo
 
 }
 
+bool Environment::insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column, Type* real_type) {
+
+    return (*curr).insert(name, type, kind, scope, line, column, real_type);
+
+}
+
 Symbol * Environment::lookup(const std::string& name) {
     for (auto a = curr; ; a = (*a).getPrev()) {
 

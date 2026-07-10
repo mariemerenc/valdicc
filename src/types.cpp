@@ -1,12 +1,7 @@
 #include "../headers/types.h"
 #include <string>
 
-Type* Type::get_real_type(const std::string& s){
-    auto find_result = Types::type_keywords.find(s);
-    if(find_result == Types::type_keywords.end()){
-        auto return_type = new ClassType(s, {});
-        return return_type;
-    }
+Type* Type::str_to_real_type(const std::string& s){
     if(s == "int"){
         auto return_type = new IntType(0);
         return return_type;
@@ -17,6 +12,10 @@ Type* Type::get_real_type(const std::string& s){
     }
     else if(s == "int[]"){
         auto return_type = new IntArrayType(16);
+        return return_type;
+    }
+    else if(!s.empty()){
+        auto return_type = new ClassType(s, {});
         return return_type;
     }
     return nullptr;
@@ -37,7 +36,8 @@ void IntArrayType::reserve_new_size(size_t sz){
 
 std::string Type::get_type_as_string(){
     switch (this->real_type) {
-
+    case UNKNOWN:
+        return "????";
     case INT:
         return "int";
     case BOOL:

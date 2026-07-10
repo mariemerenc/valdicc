@@ -20,13 +20,14 @@ struct Type{
     virtual ~Type() = default; 
     size_t byte_width;
     enum type_kind{
+        UNKNOWN = 0,
         INT,
         BOOL,
         INT_ARR,
         CLASS_TYPE
     } real_type;
     std::string get_type_as_string();
-    static Type* get_real_type(const std::string& s);
+    static Type* str_to_real_type(const std::string& s);
 };
 
 struct IntType : public Type{
@@ -67,4 +68,3 @@ struct ClassType : public Type{
     }
     void insert_all_fields(std::unordered_map<std::string, Type*> t);
 };
-
