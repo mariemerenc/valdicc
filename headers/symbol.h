@@ -43,7 +43,16 @@ struct Symbol{
         line = l;
         column = c;
     }
-
+    
+    Symbol(const std::string& n, const std::string& t, SymbolKind k, int s, int l, int c, Type* r_t){
+        name = n;
+        type = t;
+        kind = k;
+        scope = s;
+        line = l;
+        column = c;
+        type_data = r_t;
+    }
     /**
      * @brief Default constructor for a Symbol object.
      * * Initializes positional and scope metadata to zero.
