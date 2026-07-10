@@ -169,7 +169,7 @@ namespace node_types{
         VarDecl(const string &v_id, const string &v_type){
             var_id = v_id;
             var_type = v_type;
-            real_var_type = Type::get_real_type(v_type);
+            real_var_type = Type::str_to_real_type(v_type);
             if(var_type.back() == ']') is_array = true;
             else is_array = false;
             
@@ -549,6 +549,7 @@ namespace node_types{
         bool bool_val;
 
         TrueFalseLiteral(bool v){
+            type = new BooleanType(v);
             bool_val = v;
             this->node_rule = NodeRule::TRUEFALSELITERAL;
         }
@@ -566,8 +567,8 @@ namespace node_types{
     class NumLiteral : public ExprNode{
     public:
         int64_t int_val;
-
         NumLiteral(int64_t v){
+            type = new IntType(v);
             int_val = v;
             this->node_rule = NodeRule::NUMLITERAL;
         }
@@ -588,6 +589,7 @@ namespace node_types{
 
         IdLiteral(string identifier){
             id = std::move(identifier);
+            type = nullptr;
             this->node_rule = NodeRule::IDLITERAL;
         }
 
@@ -604,6 +606,7 @@ namespace node_types{
     class ThisExpr : public ExprNode{
     public:
         ThisExpr(){
+            type = nullptr;
             this->node_rule = NodeRule::THISEXPR;
         }
 
@@ -622,6 +625,7 @@ namespace node_types{
         string class_id;
 
         NewObjExpr(string id){
+            type = new ClassType(id, {});
             class_id = std::move(id);
             this->node_rule = NodeRule::NEWOBJEXPR;
         }
@@ -641,6 +645,7 @@ namespace node_types{
         unique_ptr<ExprNode> size_expr;
 
         NewArrayExpr(unique_ptr<ExprNode> size){
+            type = new IntArrayType(4);
             size_expr = std::move(size);
             this->node_rule = NodeRule::NEWARRAYEXPR;
         }

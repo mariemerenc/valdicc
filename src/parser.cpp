@@ -1,5 +1,6 @@
 #include "../headers/parser.h"
 #include "../headers/usefultools.h"
+#include <cstddef>
 #include <memory>
 #include <stdexcept>
 #include <limits.h>
@@ -171,8 +172,8 @@ NodeVec Parser::parse_DefCl(){
             extends = true;
             extends_id = previous().lexeme;
         }
-
-        bool success = env.insert(class_id, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
+        Type* t = new ClassType(class_id, {});
+        bool success = env.insert(class_id, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column, t);
         if(!success){
             throw_error("Classe já declarada: " + class_id, ErrorPhase::SEMANTIC);
         }
@@ -204,8 +205,8 @@ NodeVec Parser::parse_DefVar() {
         match(TokenType::IDENTIFIER);
         Token tkn_id = previous();
         string id = tkn_id.lexeme;
-
-        bool success = env.insert(id, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+        Type* t = Type::str_to_real_type(type);
+        bool success = env.insert(id, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column, t);
         if(!success){
             throw_error("Variável já declarada neste escopo: " + id, ErrorPhase::SEMANTIC);
         }
@@ -298,8 +299,8 @@ NodeVec Parser::parse_Args() {
     string type = parse_Type();
     match(TokenType::IDENTIFIER);
     Token tkn_id = previous();
-
-    bool success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+    Type* t = Type::str_to_real_type(type);
+    bool success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column, t);
     if(!success){
         throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
     }
@@ -316,8 +317,8 @@ NodeVec Parser::parse_Args() {
         type = parse_Type();
         match(TokenType::IDENTIFIER);
         tkn_id = previous();
-
-        success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+        t = Type::str_to_real_type(type);
+        success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column, t);
         if(!success){
             throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }

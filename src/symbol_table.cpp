@@ -36,6 +36,16 @@ bool SymbolTable::insert(const std::string& name, const std::string& type, Symbo
     return false; // ja existe
 }
 
+bool SymbolTable::insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column, Type* real_type) {
+    if (symbol_table.count(name) == 0) { // n existe
+        symbol_table[name] = Symbol(name, type, kind, scope, line, column, real_type);
+        return true;
+    }
+    
+    return false; // ja existe
+}
+
+
 Symbol * SymbolTable::lookup(const std::string& name) {
     if (symbol_table.count(name) != 0) {
         return &symbol_table[name];
