@@ -289,14 +289,17 @@ string TypeChecker::check_variable(string v_id, ASTNode* location){
     // enquanto tiver registro da classe atual no mapa
     while(class_attributes.count(curr_cl) > 0){
         if(class_attributes[curr_cl].count(v_id) > 0){
-            auto lit_node = dynamic_cast<IdLiteral*>(location);
-            if(lit_node->type == nullptr){
-                lit_node->type = class_attributes[curr_cl][v_id];
+            if(location->node_rule == IDLITERAL){
+                    auto lit_node = dynamic_cast<IdLiteral*>(location);
+                if(lit_node->type == nullptr){
+                    lit_node->type = class_attributes[curr_cl][v_id];
+                }
+                else{
+                    std::cout << "Não era pra ter chegado aqui. Se o literal não tem o tipo definido, o tipo dele era pra ser nullptr\n";
+                    throw_semantic_error(location, "wtf");
+                }
             }
-            else{
-                std::cout << "Não era pra ter chegado aqui. Se o literal não tem o tipo definido, o tipo dele era pra ser nullptr\n";
-                throw_semantic_error(location, "wtf");
-            }
+            
             return class_attributes[curr_cl][v_id]->get_type_as_string();
         }
 
