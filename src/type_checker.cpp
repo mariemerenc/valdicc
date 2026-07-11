@@ -1,3 +1,5 @@
+#include <cstddef>
+#include <iostream>
 #include <stdexcept>
 #include <memory>
 #include <unordered_set>
@@ -287,6 +289,14 @@ string TypeChecker::check_variable(string v_id, ASTNode* location){
     // enquanto tiver registro da classe atual no mapa
     while(class_attributes.count(curr_cl) > 0){
         if(class_attributes[curr_cl].count(v_id) > 0){
+            auto lit_node = dynamic_cast<IdLiteral*>(location);
+            if(lit_node->type == nullptr){
+                lit_node->type = class_attributes[curr_cl][v_id];
+            }
+            else{
+                std::cout << "Não era pra ter chegado aqui. Se o literal não tem o tipo definido, o tipo dele era pra ser nullptr\n";
+                throw_semantic_error(location, "wtf");
+            }
             return class_attributes[curr_cl][v_id]->get_type_as_string();
         }
 
@@ -311,11 +321,18 @@ string TypeChecker::check_type_of(ExprNode* expr){
         case TRUEFALSELITERAL:
             return "boolean";
 
-        case IDLITERAL:
-            return check_variable(dynamic_cast<IdLiteral*>(expr)->id, expr);
-
-        case THISEXPR:
+        case IDLITERAL:{
+            auto lit_node = dynamic_cast<IdLiteral*>(expr);
+            return check_variable(lit_node->id, expr);
+        }
+        case THISEXPR:{
+            auto this_node = dynamic_cast<ThisExpr*>(expr);
+            if (this_node->type == nullptr){
+                //TODO!
+                throw_semantic_error(expr, "the expression this is not implemented");
+            }
             return current_class;
+        }
 
         // 4.1.1
         case ADDEXPR: {
@@ -324,7 +341,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
             if(check_type_of(add_e->lhs.get()) != "int" || check_type_of(add_e->rhs.get()) != "int"){
                 throw_semantic_error(expr, "ops aritmeticas (aqui eh soma ou subtraçao) devem ser entre inteiros");
             }
-
+            add_e->type = new IntType(0);
             return "int";
         }
 
@@ -335,7 +352,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
             if(check_type_of(mul_e->lhs.get()) != "int" || check_type_of(mul_e->rhs.get()) != "int"){
                 throw_semantic_error(expr, "ops aritmeticas (aqui eh multiplicacao) devem ser entre inteiros");
             }
-
+            mul_e->type = new IntType(0);
             return "int";
         }
 
@@ -346,7 +363,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
             if(check_type_of(rel_e->lhs.get()) != "int" || check_type_of(rel_e->rhs.get()) != "int"){
                 throw_semantic_error(expr, "op > deve ser entre inteiros");
             }
-
+            rel_e->type = new BooleanType(false);
             return "boolean";
         }
 
@@ -357,7 +374,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
             if(check_type_of(and_e->lhs.get()) != "boolean" || check_type_of(and_e->rhs.get()) != "boolean"){
                 throw_semantic_error(expr, "op && deve ser entre bools");
             }
-
+            and_e->type = new BooleanType(false);
             return "boolean";
         }
 
@@ -368,7 +385,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
             if(check_type_of(neg_e->lhs.get()) != "boolean"){
                 throw_semantic_error(expr, "op ! espera um bool");
             }
-
+            neg_e->type = new BooleanType(false);
             return "boolean";
         }
 
@@ -379,7 +396,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
             if(class_attributes.count(new_obj_e->class_id) == 0){
                 throw_semantic_error(expr, "nao existe a classe " + new_obj_e->class_id);
             }
-
+            new_obj_e->type = new ClassType(new_obj_e->class_id, class_attributes[new_obj_e->class_id]);
             return new_obj_e->class_id;
         }
 
@@ -389,7 +406,8 @@ string TypeChecker::check_type_of(ExprNode* expr){
             if(check_type_of(new_arr_e->size_expr.get()) != "int"){
                 throw_semantic_error(expr, "o tamanho do vetor nao eh do tipo int");
             }
-
+            new_arr_e->type = new IntArrayType(0);
+            new_arr_e->size_expr->type = new IntType(0);
             return "int[]";
         }
         
@@ -413,7 +431,8 @@ string TypeChecker::check_type_of(ExprNode* expr){
                 if(check_type_of(psf_e->access_expr[0].get()) != "int"){
                     throw_semantic_error(expr, "indice do array deve ser int");
                 }
-
+                psf_e->type = new IntType(0);
+                psf_e->access_expr[0]->type = new IntType(0);
                 return "int";
             }
 
@@ -423,7 +442,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
                 if(base != "int[]"){
                     throw_semantic_error(expr, "chamou .length em nao vetor");
                 }
-
+                psf_e->type = new IntType(0);
                 return "int";
             }
 
@@ -452,19 +471,31 @@ string TypeChecker::check_type_of(ExprNode* expr){
                 for(size_t i = 0; i < expected_param_types.size(); i++){
                     // se o tipo esperado nao for compativel com o tipo recebido
                     if(!compatible(expected_param_types[i], check_type_of(psf_e->list_expression[i].get()))){
+                        if(psf_e->list_expression[i]->type == nullptr){
+                            psf_e->list_expression[i]->type = Type::str_to_real_type(expected_param_types[i]);
+                        }
                         throw_semantic_error(expr, "tipo do argumento recebido nao eh compativel com o esperado");
                     }
                 }
 
                 // ai se passou por tudo isso e nao deu erro, retorna o tipo do retorno
+                psf_e->type = Type::str_to_real_type(method_return[key]);
                 return method_return[key];
             }
         }
-
-        default:{
-            return "";
+        case ASTNode::NodeRule::PROG:
+        case ASTNode::NodeRule::MAINDECL:
+        case ASTNode::NodeRule::CLASSDECL:
+        case ASTNode::NodeRule::VARDECL:
+        case ASTNode::NodeRule::METHODDECL:
+        case ASTNode::NodeRule::COMMANDDECL:
+        case ASTNode::NodeRule::ASSIGNDECL:
+        case ASTNode::NodeRule::IFELSEDECL:
+        case ASTNode::NodeRule::WHILEDECL:
+        case ASTNode::NodeRule::PRINTLN:
+          return "";
         }
-    }
+    return "";
 }
 
 
@@ -474,7 +505,6 @@ void TypeChecker::check_command(ASTNode* cmd){
             AssignDecl* a = dynamic_cast<AssignDecl*>(cmd);
 
             string target_type = check_variable(a->lhs_id, a);
-
             if(a->is_array){
                 if(target_type != "int[]"){
                     throw_semantic_error(a, "tentou indexar um nao vetor");

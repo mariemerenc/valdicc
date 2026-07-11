@@ -19,6 +19,7 @@ namespace Types{
 struct Type{
     virtual ~Type() = default; 
     size_t byte_width;
+    bool evaluated = false; ///this should be set to true when the eval function evaluated the type
     enum type_kind{
         UNKNOWN = 0,
         INT,

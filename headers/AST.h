@@ -63,7 +63,7 @@ public:
  */
 class ExprNode : public ASTNode{
 public:
-    Type* type; ///< type of the expression.
+    Type* type = nullptr; ///< type of the expression.
 };
 
 
@@ -354,6 +354,7 @@ namespace node_types{
         AndExpr(unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             lhs = std::move(left);
             rhs = std::move(right);
+            type = nullptr;
             this->node_rule = NodeRule::ANDEXPR;
         }
 
@@ -378,6 +379,7 @@ namespace node_types{
         RelExpr(unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             lhs = std::move(left);
             rhs = std::move(right);
+            type = nullptr;
             this->node_rule = NodeRule::RELEXPR;
         }
 
@@ -406,6 +408,7 @@ namespace node_types{
 
         AddExpr(Operation operation, unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             op = operation;
+            type = nullptr;
             lhs = std::move(left);
             rhs = std::move(right);
             this->node_rule = NodeRule::ADDEXPR;
@@ -435,6 +438,7 @@ namespace node_types{
         MulDivExpr(Operation operation, unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             op = operation;
             lhs = std::move(left);
+            type = nullptr;
             rhs = std::move(right);
             this->node_rule = NodeRule::MULDIVEXPR;
         }
@@ -459,6 +463,7 @@ namespace node_types{
         NegateExpr(bool negated, unique_ptr<ExprNode> left){
             is_negated = negated;
             lhs = std::move(left);
+            type = nullptr;
             this->node_rule = NodeRule::NEGATEEXPR;
         }
 
@@ -498,6 +503,7 @@ namespace node_types{
             access_expr = std::move(access);
             method_id = met_id;
             list_expression = std::move(list_expr);
+            type = nullptr;
             this->node_rule = NodeRule::PRIMARYACCESSEXPR;
         }
 
@@ -531,6 +537,7 @@ namespace node_types{
 
         PrimaryExpr(unique_ptr<ExprNode> inner){
             expr = std::move(inner);
+            type = nullptr;
             this->node_rule = NodeRule::PRIMARYEXPR;
         }
 
@@ -551,6 +558,7 @@ namespace node_types{
         TrueFalseLiteral(bool v){
             type = new BooleanType(v);
             bool_val = v;
+            type->evaluated = true;
             this->node_rule = NodeRule::TRUEFALSELITERAL;
         }
 
@@ -570,6 +578,7 @@ namespace node_types{
         NumLiteral(int64_t v){
             type = new IntType(v);
             int_val = v;
+            type->evaluated = true;
             this->node_rule = NodeRule::NUMLITERAL;
         }
 
