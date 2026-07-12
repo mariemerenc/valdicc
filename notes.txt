@@ -1,2 +1,36 @@
 o print ast ta errado (while, if/else, etc.), mas a estrutura da AST está correta
 
+
+implementacao: vector de quadruplas de (result, op, arg1, arg2=null) (pode ser otimizada com linked list tho)
+
+SOBRE O 3AC
+
+vars globais: contador de variavel, contador de linha
+
+no livro, ele eh implementado sobre a AST com o type checking ao mesmo tempo
+eu acredito que isso vai nos confundir mais e desorganizar mais a nossa implementação, então fiz uma classe para fazer essa conversão
+
+ele segue uma ideia simples de busca em profundidade (como queremos sempre começar pelo nó mais profundo por causa da precedencia de operadores,
+visitamos os filhos do nó antes de visitar o próprio nó)
+
+expressões simples como multiplicacao e adicao sao bem intuitivas:
+
+para a = b + c * d
+
+t1 = c*d
+t2 = b + t1
+a = t1
+
+
+para outras statements como while e if, temos o uso do go to (por isso que é importante visitar os filhos primeiro!)
+a ordem a ser seguida é:
+0 - avaliamos toda a expressao dentro dos parenteses do if, se tiver
+1 - inserimos o primeiro goto (goto if)
+2 - tudo caso o if seja true (guardaremos o numero da ultima linha);
+3 - inserimos o segundo goto
+4 - inserimos tudo vai ser executado sendo true
+
+se houver else:
+5 - avaliamos tudo dentro do else, se houver
+6 - inserimos o goto logo depois, endereco para o final do if + 1
+5 - inserimos tudo que vai ser executado sendo true
