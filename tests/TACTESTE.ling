@@ -1,0 +1,49 @@
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(new Calculadora().sub(20, 10));
+    }
+}
+
+class Calculadora {
+    int ult_resp;
+
+    public int sub(int a, int b) {
+        int temp;
+        temp = a - b;
+        ult_resp = temp;
+        return temp;
+    }
+}
+
+class TesteIfElse{
+    public int testeIfElse(){
+        int iff;
+        int elsee;
+
+        iff = 20;
+        elsee = 10;
+        
+        if(iff > elsee){
+            System.out.println(iff);
+        }
+        else{
+            System.out.println(elsee);
+        }
+        
+        return 1;
+    }
+}
+
+class TesteWhile{
+    public int testeWhile(){
+        int whilee;
+        whilee = 5;
+        
+        while(whilee > 3){
+            System.out.println(whilee);
+            whilee = whilee - 1;
+        }
+        
+        return 0;
+    }
+}
