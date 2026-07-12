@@ -23,6 +23,15 @@ enum class oper{
     NUM,
     TRUEFALSE,
     ID,
+    PARAM,
+    CALL,
+    ACCESS,
+    PRINT,
+    DEFINE,
+    RETURN,
+    NEWOBJ,
+    NEWARR,
+    THIS,
 };
 
 struct quad {
@@ -49,6 +58,7 @@ class TacGenerator{
     ASTNode* root;
     int temp_var_counter = 0;
     int line_counter = 0;
+    std::list<quad> final;
 
     public:
     TacGenerator(ASTNode* rooot);

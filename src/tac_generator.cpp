@@ -1,5 +1,23 @@
 #include "../headers/tac_generator.h"
 #include <sstream>
+#include <stdexcept>
+#include "../headers/AST.h"
+
+
+TacGenerator::TacGenerator(ASTNode* rooot) {
+    root = rooot;
+    final = generate(root);
+
+}
+
+
+
+string TacGenerator::printTac() {
+    // lembrar de apenas ignorar os literais (numero, id e truefalse); eles so sao
+    // usados para podermos "retornar" sem retornar
+
+
+}
 
 string t = "t";
 // rever toda a logica do line counter -> acho que preciso adicionar o len ao no depois de visitar os filhos e o no
@@ -275,15 +293,42 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
 
         case ASTNode::NodeRule::PROG: {
-            
+            std::list<quad> a = {};
+            auto prog = dynamic_cast<node_types::ProgNode*>(node);
+            a.splice(a.end(), generate(prog->main_decl.get()));
+
+            for(auto& un_ptr_cl : prog->class_decl){
+                auto cl = dynamic_cast<node_types::ClassDecl*>(un_ptr_cl.get());
+
+                a.splice(a.end(), generate(cl));
+            }
+
+            return a; 
+           
             break;
         }
         case ASTNode::NodeRule::MAINDECL: {
+
+            std::list<quad> a = {};
+            auto main = dynamic_cast<node_types::MainDecl*>(node);
+
+            for(auto& cmd : main->commands){
+                a.splice(a.end(), generate(cmd.get()));
+            }
+
+            return a;
             
             break;
         }
         case ASTNode::NodeRule::CLASSDECL: {
-            
+            std::list<quad> a = {};
+            auto cl = dynamic_cast<node_types::ClassDecl*>(node);
+
+            for(auto& met : cl->methods){
+                a.splice(a.end(), generate(met.get()));
+            }
+
+            return a;
             break;
         }
         case ASTNode::NodeRule::VARDECL: {
@@ -293,7 +338,55 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             break;
         }
         case ASTNode::NodeRule::METHODDECL: {
+
+            /*
+            classe.metodo1
+            t1 = 20
+            t2 = t1 + 10
+            return t2
+            */
+
+            // vamos pensar mais nisso aq
+            std::list<quad> a = {}, b = {}, c = {};
+
+            auto n = dynamic_cast<node_types::MethodDecl*>(node);
+
+            // imprimir aqui o nome da classe + nome do metodo
+
+            // na minha cabeca faz sentido colocar parametros para serem definidos.
+
+            // pra cada parametro eu defino um param logo depois de define funcao
+
+
+            //auto pera = dynamic_cast<ClassType*>("");
+
+            // SKEETE COMO COLOCA A CLASSE AQ
+            c.push_back(quad(oper::DEFINE, n->method_id, "", ""));
+            line_counter++;
+
+            for(auto& arg : n->param_list){
+
+                auto p = dynamic_cast<node_types::VarDecl*>(arg.get());
+                a.push_back(quad(oper::PARAM, p->var_id, "", ""));
+                line_counter++;
+                //a.splice(a.end(), generate(met.get()));
+            }
+
             
+
+
+            for (auto& c : n->commands_list) {
+                a.splice(a.end(), generate(c.get()));
+            }
+
+            a.splice(a.end(), generate(n->return_expr.get()));
+
+            c.push_back(quad(oper::RETURN, a.back().res, "", ""));
+            line_counter++;
+
+            return a;
+
+        
             break;
         }
         case ASTNode::NodeRule::COMMANDDECL: { // isso aq eh oq hein
@@ -301,27 +394,151 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             break;
         }
         case ASTNode::NodeRule::PRINTLN: {
-            
+            auto pln = dynamic_cast<node_types::PrintLn*>(node);
+            auto a = generate(pln->print_exp.get());
+
+            a.push_back(quad(oper::PRINT, a.back().res, "", ""));
+            line_counter++;
+
+            return a;
             break;
         }
         case ASTNode::NodeRule::PRIMARYACCESSEXPR: { 
-            
+            auto* n = dynamic_cast<node_types::PrimaryAccessExpr*>(node);
+
+            std::list<quad> a ={}, b = {};
+
+            switch (n->expr_kind){
+                case node_types::PrimaryAccessExpr::PEModifier::LENGTH: {
+                    
+                    
+                    
+
+                    node_types::IdLiteral* aaaaa = dynamic_cast<node_types::IdLiteral*>(n->lhs.get());
+
+                    if (!aaaaa) {
+                        throw std::runtime_error("nao conseguimos acessar a o nome a qual o acesso se refere 1 (TAC)\n");
+                        exit(1);
+                    }
+
+
+                    a.push_back(quad(oper::CALL, aaaaa->id + ".len", "", ""));
+                    line_counter++;
+
+
+                    return a;
+
+
+                    break;
+                }
+
+                case node_types::PrimaryAccessExpr::PEModifier::ARRAY_ACCESS: { // PODEMOS MODIFICAR PARA O SIZE CASO SEJA NECESSARIO
+
+                    for(auto& com : n->access_expr){
+                        a.splice(a.end(), generate(com.get()));
+                    }
+
+
+                    node_types::IdLiteral* aaaaa = dynamic_cast<node_types::IdLiteral*>(n->lhs.get());
+                    if (!aaaaa) {
+                        throw std::runtime_error("nao conseguimos acessar a o nome a qual o acesso se refere 2 (TAC)\n");
+                        exit(1);
+                    }
+
+                    a.push_back(quad(oper::MULT, a.back().res, "8", t + std::to_string(temp_var_counter++)));
+                    line_counter++;
+
+
+                    a.push_back(quad(oper::ACCESS, aaaaa->id, a.back().res, std::to_string(temp_var_counter++)));
+                    line_counter++;
+
+                    return a;
+                    break;
+                }
+
+                case node_types::PrimaryAccessExpr::PEModifier::METHOD_CALL: {
+
+                    std::list<string> parametros = {};
+
+                    for(auto& com : n->list_expression){
+                        a.splice(a.end(), generate(com.get()));
+                        parametros.push_back(a.back().res);
+
+                    }
+                    for (string param : parametros) {
+                        a.push_back(quad(oper::PARAM, param, "", ""));
+                        line_counter++;
+                    }
+
+                    auto aaaaa = dynamic_cast<ClassType*>(n->lhs->type);
+
+                    if (!aaaaa) {
+                        throw std::runtime_error("nao conseguimos acessar a classe a qual o metodo se refere (TAC)\n");
+                        exit(1);
+                    }
+
+
+                    a.push_back(quad(oper::CALL, aaaaa->class_name + "." + n->method_id, std::to_string(parametros.size()), t + std::to_string(temp_var_counter++)));
+                    line_counter++;
+
+
+                    return a;
+                    break;
+                }
+                default:
+                    break;
+        
+        
+            }
+
+
+
             break;
         }
-        case ASTNode::NodeRule::PRIMARYEXPR: { 
-            
+        case ASTNode::NodeRule::PRIMARYEXPR: {
+
+            auto prim = dynamic_cast<node_types::PrimaryExpr*>(node);
+
+            return generate(prim->expr.get());
             break;
         }
-        case ASTNode::NodeRule::THISEXPR: { 
-            
+        case ASTNode::NodeRule::THISEXPR: { // REVER
+
+            std::list<quad> a = {}, b = {};
+            auto prim = dynamic_cast<node_types::ThisExpr*>(node);
+
+            //prim->;
+
+            a.push_back(quad(oper::THIS, "", "", ""));
+            line_counter++;
+
+            return a;
+
             break;
         }
         case ASTNode::NodeRule::NEWOBJEXPR: { 
-            
+
+            std::list<quad> a = {};
+            auto prim = dynamic_cast<node_types::NewObjExpr*>(node);
+
+            a.push_back(quad(oper::NEWOBJ, prim->class_id, "", t + std::to_string(temp_var_counter++)));
+            line_counter++;
+            return a;
             break;
         }
         case ASTNode::NodeRule::NEWARRAYEXPR: { 
             
+            std::list<quad> a = {};
+            auto prim = dynamic_cast<node_types::NewArrayExpr*>(node);
+
+            a = generate(prim->size_expr.get()); // nao fazemos ideia se isso vai funcionar
+
+            /*a.push_back(quad(oper::MULT, a.back().res, "8", t + std::to_string(temp_var_counter++)));
+            line_counter++; nao sei se precisa multiplicar por 8 tambem*/
+
+            a.push_back(quad(oper::NEWARR, a.back().res, "", t + std::to_string(temp_var_counter++)));
+            line_counter++;
+            return a;
             break;
         }
 
@@ -331,7 +548,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 /*
 
 
-I GOTTA: chegar as lists dos filhos
+I GOTTA: checar as lists dos filhos
 CALCULAR O NOVO QUAD PARA COLOCAR NO FIM DA LISTA
 preciso estar retornando a mais de cima para ser retornada
 
