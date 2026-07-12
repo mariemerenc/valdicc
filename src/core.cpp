@@ -2,7 +2,6 @@
 #include "../headers/preprocessor.h"
 #include "../headers/lexer.h"
 #include "../headers/parser.h"
-#include "../headers/code_gen.h"
 #include "../headers/symbol_table.h"
 #include "../headers/type_checker.h"
 #include "../headers/tac_generator.h"
