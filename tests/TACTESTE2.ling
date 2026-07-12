@@ -1,4 +1,4 @@
-// operadores logicos, relacoes, heranca, instanciar classe com new dentro de classe
+// operadores aritmeticos, if e while, relacao >
 
 class Principal {
     public static void main(String[] args) {
@@ -39,9 +39,10 @@ class TesteIfElse{
 class TesteWhile{
     public int testeWhile(){
         int whilee;
+        int eitaa;
         whilee = 5;
-
-        
+        eitaa = 3;
+        whilee = whilee * eitaa;
         
         while(whilee > 3){
             System.out.println(whilee);
@@ -50,4 +51,22 @@ class TesteWhile{
         
         return 0;
     }
+}
+
+class TesteIndexArray{
+    public int testeIndexArray() {
+        int[] array;
+        int a;
+
+        a = 10;
+        array = new int[10];
+        array[7] = a;
+
+        System.out.println(array.length);
+
+        return array[2];
+
+    }
+
+
 }

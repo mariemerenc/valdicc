@@ -33,6 +33,7 @@ enum class oper{
     NEWOBJ,
     NEWARR,
     THIS,
+    HALT,
 };
 
 struct quad {
@@ -58,7 +59,7 @@ class TacGenerator{
 
     ASTNode* root;
     int temp_var_counter = 0;
-    int line_counter = 0;
+    int line_counter = 1;
     std::list<quad> final;
 
     public:

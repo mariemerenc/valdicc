@@ -2,6 +2,7 @@
 #include <sstream>
 #include <stdexcept>
 #include "../headers/AST.h"
+#include <iostream>
 
 
 TacGenerator::TacGenerator(ASTNode* rooot) {
@@ -87,10 +88,10 @@ string TacGenerator::printTac() {
             }
 
             case oper::CALL:{
-                output += ("call " + q.arg1 + ", " + q.arg2 + "\n");
+                //output += ("call " + q.arg1 + ", " + q.arg2 + "\n");
                 //no livro essa aq debaixo tava dizendo q era "opcional" lembram
                 //mas aq nao ta bem assim como o livro sugere enfim 
-                //output += (q.res + " = call " + q.arg1 + ", " + q.arg2 + "\n");
+                output += (q.res + " = call " + q.arg1 + ", " + q.arg2 + "\n");
                 break;
             }
 
@@ -105,7 +106,7 @@ string TacGenerator::printTac() {
             }
 
             case oper::DEFINE:{
-                output += (q.arg1 + ":\n");
+                output += ("DEFINE "+q.arg1 + ":\n");
                 break;
             }
 
@@ -126,6 +127,11 @@ string TacGenerator::printTac() {
 
             case oper::THIS:{
                 //pensando aq como vamos resolver esse this viu......
+                break;
+            }
+
+            case oper::HALT:{
+                output += ("HALT main\n");
                 break;
             }
 
@@ -302,17 +308,17 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             auto* n = dynamic_cast<node_types::AssignDecl*>(node);
             
             std::list<quad> a = {}, b = {};
+            string s = "";
             if (n->is_array) { // do something here
                 if(n->index_expr != nullptr) a = generate(n->index_expr.get());
-                // VERIFICAR SE ISSO SO ACONTECE PARA ARRAY
-                // colocar um retorno aqui also i think
+                s += "[" + a.back().res+ "]";
             }
 
             if(n->rhs != nullptr) b = generate(n->rhs.get());
 
             // eu preciso estar adicionando mais um quad aqui
             
-            quad q(oper::ASS, b.back().res, "", n->lhs_id);
+            quad q(oper::ASS, b.back().res, "", n->lhs_id + s);
 
             line_counter++;
             b.push_back(q);
@@ -341,23 +347,39 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
             if(n->if_exp != nullptr) a = generate(n->if_exp.get());
 
-            a.push_back(quad(oper::GOTOIF, a.back().res, "", std::to_string(line_counter+1)));
+            a.push_back(quad(oper::GOTOIF, a.back().res, "", std::to_string(line_counter+2)));
             line_counter++;
 
             for(auto& com : n->command_list){
                 c.splice(c.end(), generate(com.get())); // adicionando recursivamente todos os comandos do if
             }
 
-            // isso porque o line counter ja esta sendo implementado nas folhas
-            a.push_back(quad(oper::GOTO, "", "", std::to_string(line_counter + 1)));
+
+            if (n->has_else == false){
+                a.push_back(quad(oper::GOTO, "", "", std::to_string(line_counter + 1)));
+                
+            }
+            // literalmente adicionando o goto a mais lol
+            else {
+                a.push_back(quad(oper::GOTO, "", "", std::to_string(line_counter + 2)));
+            }
 
             line_counter++;
+
+            
+
+            // isso porque o line counter ja esta sendo implementado nas folhas
+
+
+            
+
             a.splice(a.end(), c);
 
             if (n->has_else == true) {
                 for(auto& com : n->else_command_list){
                     d.splice(d.end(), generate(com.get())); // adicionando recursivamente todos os comandos do if
                 }
+
                 a.push_back(quad(oper::GOTO, "", "", std::to_string(line_counter + 1)));
                 line_counter ++;
                 a.splice(a.end(), d);
@@ -374,8 +396,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
             // ATUALMENTE VOLTO PRA RECALCULAR A WHILE_EXP, VERIFICAR SE THATS WHAT I WANNA DO
 
-            int pera = line_counter;
-
+            
             std::list<quad> a = {}, b = {}, c = {};
             
             /*
@@ -386,10 +407,11 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             4 - colocar todas as expressoes de dentro do while
             5 - colocar um goto pro inicio
             */
-            
+            int pera2 = line_counter;
             if(n->while_exp != nullptr) c = generate(n->while_exp.get()); // adicionando recursivamente todos os comandos do if
-
-            line_counter+=c.size();
+            int pera = line_counter;
+           
+            //line_counter+=c.size();
 
             for(auto& com : n->command_list){
                 a.splice(a.end(), generate(com.get())); // adicionando recursivamente todos os comandos do if
@@ -397,15 +419,21 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
             //int lembrar = line_counter;
 
-            c.push_back(quad(oper::GOTOIF, c.back().res, "", std::to_string(line_counter + a.size() + 1)));
+            c.push_back(quad(oper::GOTOIF, c.back().res, "", std::to_string(pera+2)));
 
-            line_counter+=a.size() + 1;
+            line_counter++;
+
+            c.push_back(quad(oper::GOTO, "", "", std::to_string(line_counter+2)));
+
+            line_counter++;
 
             c.splice(c.end(), a);
 
-            c.push_back(quad(oper::GOTO, "", "", std::to_string(pera)));
+            c.push_back(quad(oper::GOTO, "", "", std::to_string(pera2)));
 
             line_counter++;
+
+            return c;
 
 
             break;
@@ -436,6 +464,9 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
                 a.splice(a.end(), generate(cmd.get()));
             }
 
+            a.push_back(quad(oper::HALT, "", "", ""));
+            line_counter++;
+
             return a;
             
             break;
@@ -449,12 +480,6 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             }
 
             return a;
-            break;
-        }
-        case ASTNode::NodeRule::VARDECL: {
-
-            // nao faz nada pois a declaracao ja nao importa para nos
-            
             break;
         }
         case ASTNode::NodeRule::METHODDECL: {
@@ -481,7 +506,19 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             //auto pera = dynamic_cast<ClassType*>("");
 
             // SKEETE COMO COLOCA A CLASSE AQ
-            c.push_back(quad(oper::DEFINE, n->method_id, "", ""));
+
+            /*auto aaaaa = dynamic_cast<ClassType*>(n->lhs->type);
+
+            if (!aaaaa) {
+                throw std::runtime_error("nao conseguimos acessar a classe a qual o metodo se refere (TAC)\n");
+                exit(1);
+            }*/
+
+            /*DEFINE adicionar
+            DEFINE Calculadora.adicionar*/
+
+
+            a.push_back(quad(oper::DEFINE, n->method_id, "", ""));
             line_counter++;
 
             for(auto& arg : n->param_list){
@@ -501,16 +538,12 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
             a.splice(a.end(), generate(n->return_expr.get()));
 
-            c.push_back(quad(oper::RETURN, a.back().res, "", ""));
+            a.push_back(quad(oper::RETURN, a.back().res, "", ""));
             line_counter++;
 
             return a;
 
         
-            break;
-        }
-        case ASTNode::NodeRule::COMMANDDECL: { // isso aq eh oq hein
-            
             break;
         }
         case ASTNode::NodeRule::PRINTLN: {
@@ -569,7 +602,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
                     line_counter++;
 
 
-                    a.push_back(quad(oper::ACCESS, aaaaa->id, a.back().res, std::to_string(temp_var_counter++)));
+                    a.push_back(quad(oper::ACCESS, aaaaa->id, a.back().res, t + std::to_string(temp_var_counter++)));
                     line_counter++;
 
                     return a;
@@ -605,9 +638,12 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
                     return a;
                     break;
                 }
-                default:
+
+                default: {
+                    std::list<quad> a = {};
+                    return a;
                     break;
-        
+                }
         
             }
 
@@ -627,9 +663,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             std::list<quad> a = {}, b = {};
             auto prim = dynamic_cast<node_types::ThisExpr*>(node);
 
-            //prim->;
-
-            a.push_back(quad(oper::THIS, "", "", ""));
+            a.push_back(quad(oper::THIS, "eita", "", t + std::to_string(temp_var_counter++)));
             line_counter++;
 
             return a;
@@ -662,19 +696,23 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
             break;
         }
 
+        default: {
+            std::list<quad> a = {};
+            return a;
+            break;
+        }
+
     }
 
 
 /*
-
-
 I GOTTA: checar as lists dos filhos
 CALCULAR O NOVO QUAD PARA COLOCAR NO FIM DA LISTA
 preciso estar retornando a mais de cima para ser retornada
-
-
 */
-
+std::cout << "eita........\n";
+std::cout << node << "\n\n";
+return {};
     
 }
 
