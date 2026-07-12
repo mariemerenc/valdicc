@@ -11,13 +11,133 @@ TacGenerator::TacGenerator(ASTNode* rooot) {
 }
 
 
-
+//olha aqui vai ficar faltando os casos de this
+//e la no generate, o DEFINE precisa de class_id + method_id pra casar com o CALL
+//atualmente estao diferentes pq nao sei como diabos vamos acessar o class_id 
+//mas vou atras disso
 string TacGenerator::printTac() {
     // lembrar de apenas ignorar os literais (numero, id e truefalse); eles so sao
     // usados para podermos "retornar" sem retornar
 
+    // se a gnt for printar o no. da linha ta aq (pt.1):
+    //int n = 0;
+    string output = "";
+    for(auto& q : final){
+        if(q.opp == oper::NUM || q.opp == oper::ID || q.opp == oper::TRUEFALSE){
+            continue;
+        }
+    
+        // se a gnt for printar o no. da linha ta aq (pt.2):
+        //output += std::to_string(n) + ". ";
+        
+        switch(q.opp){
+            case oper::ADD:{
+                output += (q.res + " = " + q.arg1 + " + " + q.arg2 + "\n");
+                break;
+            }
 
+            case oper::SUB:{
+                output += (q.res + " = " + q.arg1 + " - " + q.arg2 + "\n");
+                break;
+            }
+
+            case oper::MULT:{
+                output += (q.res + " = " + q.arg1 + " * " + q.arg2 + "\n");
+                break;
+            }
+
+            case oper::REL:{
+                output += (q.res + " = " + q.arg1 + " > " + q.arg2 + "\n");
+                break;
+            }
+
+            case oper::AND:{
+                output += (q.res + " = " + q.arg1 + " && " + q.arg2 + "\n");
+                break;
+            }
+
+            case oper::NOT:{
+                output += (q.res + " = !" + q.arg1 + "\n");
+                break;
+            }
+
+            case oper::LEN:{
+                output += (q.res + " = " + q.arg1 + ".len\n");
+                break;
+            }
+
+            case oper::ASS:{
+                output += (q.res + " = " + q.arg1 + "\n");
+                break;
+            }
+
+            case oper::GOTO:{
+                output += ("goto " + q.res + "\n");
+                break;
+            }
+
+            case oper::GOTOIF:{
+                output += ("if " + q.arg1 + " goto " + q.res + "\n");
+                break;
+            }
+
+            case oper::PARAM:{
+                output += ("param " + q.arg1 + "\n");
+                break;
+            }
+
+            case oper::CALL:{
+                output += ("call " + q.arg1 + ", " + q.arg2 + "\n");
+                //no livro essa aq debaixo tava dizendo q era "opcional" lembram
+                //mas aq nao ta bem assim como o livro sugere enfim 
+                //output += (q.res + " = call " + q.arg1 + ", " + q.arg2 + "\n");
+                break;
+            }
+
+            case oper::ACCESS:{
+                output += (q.res + " = " + q.arg1 + "[" + q.arg2 + "]\n");
+                break;
+            }
+
+            case oper::PRINT:{
+                output += ("print " + q.arg1 + "\n");
+                break;
+            }
+
+            case oper::DEFINE:{
+                output += (q.arg1 + ":\n");
+                break;
+            }
+
+            case oper::RETURN:{
+                output += ("return " + q.arg1 + "\n");
+                break;
+            }
+
+            case oper::NEWOBJ:{
+                output += (q.res + " = new " + q.arg1 + "\n");
+                break;
+            }
+
+            case oper::NEWARR:{
+                output += (q.res + " = new int[" + q.arg1 + "]\n");
+                break;
+            }
+
+            case oper::THIS:{
+                //pensando aq como vamos resolver esse this viu......
+                break;
+            }
+
+
+        }
+        // se a gnt for printar o no. da linha ta aq (pt.3):
+        //n++;
+    }
+
+    return output;
 }
+
 
 string t = "t";
 // rever toda a logica do line counter -> acho que preciso adicionar o len ao no depois de visitar os filhos e o no
@@ -116,7 +236,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
             // eu preciso estar adicionando mais um quad aqui
             
-            quad q(oper::AND, a.back().res, b.back().res, t + (std::to_string(temp_var_counter++)));
+            quad q(oper::REL, a.back().res, b.back().res, t + (std::to_string(temp_var_counter++)));
             
             line_counter++;
             b.push_back(q);
@@ -422,7 +542,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
                     }
 
 
-                    a.push_back(quad(oper::CALL, aaaaa->id + ".len", "", ""));
+                    a.push_back(quad(oper::LEN, aaaaa->id, "", t + std::to_string(temp_var_counter++)));
                     line_counter++;
 
 

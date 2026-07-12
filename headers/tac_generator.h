@@ -12,6 +12,7 @@ enum class oper{
     SUB,
     MULT,
     DIV,
+    REL,
     AND,
     OR,
     NOT,
