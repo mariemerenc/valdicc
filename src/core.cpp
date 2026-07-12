@@ -5,6 +5,7 @@
 #include "../headers/code_gen.h"
 #include "../headers/symbol_table.h"
 #include "../headers/type_checker.h"
+#include "../headers/tac_generator.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -72,6 +73,18 @@ void Core::run(){
         }
         
         TypeChecker(tree.root()).check();
+        TacGenerator tacgen = TacGenerator(tree.root());
+
+        tacgen.generate(tree.root());
+
+        if(m_running_opts.tac_output){
+            std::ofstream tac_outfile{m_running_opts.tac_output_file_path};
+
+            if(tac_outfile.is_open()){
+                tac_outfile << tacgen.printTac();
+                tac_outfile.close();
+            }
+        }
         // string generated_code = CodeGenerator(tree.root(), parser.getEnv()).code;
     }
     catch(const exception& e){
