@@ -52,6 +52,7 @@ struct IntArrayType : public Type{
     std::vector<int64_t> arr;
     IntArrayType(size_t sz): size{sz}{
         byte_width = size*8;
+        real_type = type_kind::INT_ARR;
         arr.reserve(sz);
     }
     void reserve_new_size(size_t sz);
@@ -61,6 +62,7 @@ struct ClassType : public Type{
     std::string class_name;
     ClassType(std::string name ,std::unordered_map<std::string,Type*> t){
         class_name = name;
+        real_type = type_kind::CLASS_TYPE;
         fields = std::move(t);
         this->byte_width = 0;
         for(auto types: fields){

@@ -290,7 +290,7 @@ string TypeChecker::check_variable(string v_id, ASTNode* location){
     while(class_attributes.count(curr_cl) > 0){
         if(class_attributes[curr_cl].count(v_id) > 0){
             if(location->node_rule == IDLITERAL){
-                    auto lit_node = dynamic_cast<IdLiteral*>(location);
+                auto lit_node = dynamic_cast<IdLiteral*>(location);
                 if(lit_node->type == nullptr){
                     lit_node->type = class_attributes[curr_cl][v_id];
                 }
@@ -331,8 +331,7 @@ string TypeChecker::check_type_of(ExprNode* expr){
         case THISEXPR:{
             auto this_node = dynamic_cast<ThisExpr*>(expr);
             if (this_node->type == nullptr){
-                //TODO!
-                throw_semantic_error(expr, "the expression this is not implemented");
+                this_node->type = new ClassType(current_class, class_attributes[current_class]);
             }
             return current_class;
         }

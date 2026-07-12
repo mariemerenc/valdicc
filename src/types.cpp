@@ -36,8 +36,14 @@ void IntArrayType::reserve_new_size(size_t sz){
 
 std::string Type::get_type_as_string(){
     switch (this->real_type) {
-    case UNKNOWN:
+    case UNKNOWN:{
+        auto ptr = dynamic_cast<ClassType*>(this);
+        if(ptr){
+            ptr->real_type = type_kind::CLASS_TYPE;
+            return ptr->class_name;
+        }
         return "????";
+    }
     case INT:
         return "int";
     case BOOL:
@@ -45,7 +51,7 @@ std::string Type::get_type_as_string(){
     case INT_ARR:
         return "int[]";
     case CLASS_TYPE:
-        auto ptr = static_cast<ClassType*>(this);
+        auto ptr = dynamic_cast<ClassType*>(this);
         return ptr->class_name;
       break;
     }
