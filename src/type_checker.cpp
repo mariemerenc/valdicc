@@ -53,13 +53,13 @@ void TypeChecker::collect(){
             if(class_attributes[cl->class_id].count(var->var_id) > 0){
                 throw_semantic_error(var, "atributo duplicado: " + var->var_id);
             }
-            if(var->real_var_type->real_type == Type::type_kind::CLASS_TYPE){
+            /*if(var->real_var_type->real_type == Type::type_kind::CLASS_TYPE){
                 auto class_var = dynamic_cast<ClassType*>(var->real_var_type);
                 auto class_fields = class_attributes[class_var->class_name];
                 if(class_fields.empty()){
                     throw_semantic_error(var, "tipo está sendo usado antes da definição: " + var->var_id + " tipo: " + class_var->class_name);
                 }
-            }
+            }*/
             class_attributes[cl->class_id][var->var_id] = var->real_var_type;
 
         }

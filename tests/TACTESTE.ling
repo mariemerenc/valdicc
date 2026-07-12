@@ -7,19 +7,6 @@ class Principal {
 }
 
 
-class Cartao {
-    int[] quatrodigitos;
-
-    public int setCodigo(int [] cod) {
-        quatrodigitos = cod;
-        return 0;
-    }
-
-    public int[] getCodigo() {
-        return quatrodigitos;
-    }
-}
-
 class PagamentoMensalidade{
 
     boolean pagou;
@@ -54,4 +41,18 @@ class PagamentoCartaoCredito extends PagamentoMensalidade{
         return 0;
     }
 
+}
+
+
+class Cartao {
+    int[] quatrodigitos;
+
+    public int setCodigo(int [] cod) {
+        quatrodigitos = cod;
+        return 0;
+    }
+
+    public int[] getCodigo() {
+        return quatrodigitos;
+    }
 }
