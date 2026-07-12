@@ -1,53 +1,57 @@
-// operadores logicos, relacoes, heranca, instanciar classe com new dentro de classe
+// operadores logicos heranca, instanciar classe com new dentro de classe
 
 class Principal {
     public static void main(String[] args) {
-        System.out.println(new Calculadora().sub(20, 10));
+        System.out.println(new PagamentoCartaoCredito().checar());
     }
 }
 
-class Calculadora {
-    int ult_resp;
 
-    public int sub(int a, int b) {
-        int temp;
-        temp = a - b;
-        ult_resp = temp;
-        return temp;
-    }
-}
+class Cartao {
+    int[] quatrodigitos;
 
-class TesteIfElse{
-    public int testeIfElse(){
-        int iff;
-        int elsee;
-
-        iff = 20;
-        elsee = 10;
-        
-        if(iff > elsee){
-            System.out.println(iff);
-        }
-        else{
-            System.out.println(elsee);
-        }
-        
-        return 1;
-    }
-}
-
-class TesteWhile{
-    public int testeWhile(){
-        int whilee;
-        whilee = 5;
-
-        
-        
-        while(whilee > 3){
-            System.out.println(whilee);
-            whilee = whilee - 1;
-        }
-        
+    public int setCodigo(int [] cod) {
+        quatrodigitos = cod;
         return 0;
     }
+
+    public int[] getCodigo() {
+        return quatrodigitos;
+    }
+}
+
+class PagamentoMensalidade{
+
+    boolean pagou;
+    boolean serasa;
+    int valor;
+
+    public int inicializar(int valorr) {
+        pagou = false;
+        valor = valorr;
+        return 0;
+    }
+
+}
+
+class PagamentoCartaoCredito extends PagamentoMensalidade{
+
+    int juros;
+    Cartao cartao;
+
+    public int checar () {
+        if (!pagou && !serasa){
+            juros = 0;
+        }
+        else {
+            valor = valor + juros;
+        }
+        return 0;
+    }
+
+    public int adicionarCartao(Cartao cartao2) {
+        cartao = cartao2;
+        return 0;
+    }
+
 }

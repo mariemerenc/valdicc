@@ -279,7 +279,15 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
             int64_t valor = n->bool_val;
 
-            quad q(oper::NUM, "", "", std::to_string(valor));
+            string s = "";
+            if (valor == 0) {
+                s = "false";
+            }
+            else {
+                s = "true";
+            }
+
+            quad q(oper::NUM, "", "", s);
             
             a.push_back(q);
             return a;
