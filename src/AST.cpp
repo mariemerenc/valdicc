@@ -247,13 +247,43 @@ static void print_node(ASTNode* node, const std::string& prefix, bool is_last, s
 
     out << prefix << (is_last ? "└─ " : "├─ ") << node->to_string() << "\n";
 
-    vector<ASTNode*> children = get_children_for(node);
     std::string child_prefix = prefix + (is_last ? "    " : "│   ");
 
-    for(size_t i = 0; i < children.size(); i++){
-        bool child_is_last = (i + 1 == children.size());
-        print_node(children[i], child_prefix, child_is_last, out);
+    if(node->node_rule == ASTNode::NodeRule::IFELSEDECL){
+        auto ie = dynamic_cast<IfElseDecl*>(node);
+        //print a condiçao
+        print_node(ie->if_exp.get(), child_prefix, false, out);
+        //se nao tiver else, eh o ultimo
+        bool if_is_last = !ie->has_else;
+        // isso aqui eh pra printar bonitnho
+        out << child_prefix << (if_is_last ? "└─ " : "├─ ") << "IF\n";
+        // e isso aq eh pra saber se printa bonitinho tbm
+        string if_prefix = child_prefix + (if_is_last ? "    " : "│   ");
+        //e printar os comandos de if
+        for(size_t i=0; i < ie->command_list.size(); i++){
+            bool last = (i + 1 == ie->command_list.size());
+            print_node(ie->command_list[i].get(), if_prefix, last, out);
+        }
+        //se tiver else
+        if(ie->has_else){
+            out << child_prefix << "└─ " << "ELSE\n"; //vai ser o ultimo de todo jeito
+            string else_prefix = child_prefix + "    "; //e isso aq eh print formatado
+            //e para cada comando de else
+            for(size_t i=0; i < ie->else_command_list.size(); i++){
+                bool last = (i + 1 == ie->else_command_list.size());
+                print_node(ie->else_command_list[i].get(), else_prefix, last, out);
+            }
+        }
+
     }
+    else{
+        vector<ASTNode*> children = get_children_for(node);
+        for(size_t i = 0; i < children.size(); i++){
+            bool child_is_last = (i + 1 == children.size());
+            print_node(children[i], child_prefix, child_is_last, out);
+        }
+    }
+    
 }
 
 string AST::print_tree(){
