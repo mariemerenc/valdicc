@@ -26,30 +26,33 @@
 
 
 
-notas de carol:
-- top down
-- recursive predictive parsing
-- ela nao pode ser nem left recursive nem ambigua
-- WTF IS PANIC MODE WHAT
-- dificuldades encontradas: lambda productions dificultam a producao do codigo; so deixar nao retornar nada nao funciona pois - > se temos uma producao que deriva ou outra producao ou lambda, nao sabemos o que estamos derivando!! temos ambiguidades!!!!!
+main generate function:
+
+(partially) implemented
+
+ASSIGNDECL,
+IFELSEDECL,
+WHILEDECL,
+PRINTLN,
+ANDEXPR,
+RELEXPR,
+ADDEXPR,
+MULDIVEXPR,
+NEGATEEXPR,
+TRUEFALSELITERAL,
+NUMLITERAL,
+IDLITERAL,
+VARDECL, (lol isso aqui so nao exploramos porq nao precisa)
 
 
-ordem da gramatica:
-
-1 - new id (), parentese
-2 - length
-3 - listexp
-4 - acesso []
-5 - *
-6 - +-
-
-
-diferente:
-1 - ()
-2 - !, >
-3 - &&
-
-
-
-
-ultimos: 
+to be implemented:
+PROG,
+MAINDECL,
+CLASSDECL,
+METHODDECL,
+COMMANDDECL,
+PRIMARYACCESSEXPR,
+PRIMARYEXPR,
+THISEXPR,
+NEWOBJEXPR,
+NEWARRAYEXPR

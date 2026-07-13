@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <vector>
 #include <string>
+#include "types.h"
 
 namespace{ using std::vector, std::string, std::unique_ptr;}
 /**
@@ -19,6 +21,7 @@ namespace{ using std::vector, std::string, std::unique_ptr;}
 class ASTNode{
 public:
     virtual ~ASTNode() = default;
+    string node_label = "";
     int line = 0, column = 0;
     /** @brief Enumerates every grammar production representable as an AST node.*/
     enum class NodeRule{
@@ -60,18 +63,7 @@ public:
  */
 class ExprNode : public ASTNode{
 public:
-    /** @brief Primitive expression types of the language. */
-    enum class ExprType{
-        INT, BOOL, ID, INT_ARR
-    }; 
-protected:
-    ExprType type; ///< type of the expression.
-    union DataVal{
-        double floatval;
-        int64_t intval;
-        bool boolval;
-    } val;
-    size_t n_array; //if 0, it's a plain value. other wise is an n-dimensional array
+    Type* type = nullptr; ///< type of the expression.
 };
 
 
@@ -171,11 +163,13 @@ namespace node_types{
     public:
         string var_id;
         string var_type;
+        Type* real_var_type;
         bool is_array;
 
         VarDecl(const string &v_id, const string &v_type){
             var_id = v_id;
             var_type = v_type;
+            real_var_type = Type::str_to_real_type(v_type);
             if(var_type.back() == ']') is_array = true;
             else is_array = false;
             
@@ -356,13 +350,11 @@ namespace node_types{
     public:
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
-        bool val;
 
         AndExpr(unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             lhs = std::move(left);
             rhs = std::move(right);
-            val = false;
-            type = ExprType::BOOL;
+            type = nullptr;
             this->node_rule = NodeRule::ANDEXPR;
         }
 
@@ -387,8 +379,7 @@ namespace node_types{
         RelExpr(unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             lhs = std::move(left);
             rhs = std::move(right);
-            val = false;
-            type = ExprType::BOOL;
+            type = nullptr;
             this->node_rule = NodeRule::RELEXPR;
         }
 
@@ -417,10 +408,9 @@ namespace node_types{
 
         AddExpr(Operation operation, unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             op = operation;
+            type = nullptr;
             lhs = std::move(left);
             rhs = std::move(right);
-            val = 0;
-            type = ExprType::INT;
             this->node_rule = NodeRule::ADDEXPR;
         }
 
@@ -442,16 +432,14 @@ namespace node_types{
             MUL,
             DIV,
         } op;
-        int64_t val;
         unique_ptr<ExprNode> lhs;
         unique_ptr<ExprNode> rhs;
 
         MulDivExpr(Operation operation, unique_ptr<ExprNode> left, unique_ptr<ExprNode> right){
             op = operation;
             lhs = std::move(left);
+            type = nullptr;
             rhs = std::move(right);
-            val = 0;
-            type = ExprType::INT;
             this->node_rule = NodeRule::MULDIVEXPR;
         }
 
@@ -475,7 +463,7 @@ namespace node_types{
         NegateExpr(bool negated, unique_ptr<ExprNode> left){
             is_negated = negated;
             lhs = std::move(left);
-            type = ExprType::BOOL;
+            type = nullptr;
             this->node_rule = NodeRule::NEGATEEXPR;
         }
 
@@ -515,7 +503,7 @@ namespace node_types{
             access_expr = std::move(access);
             method_id = met_id;
             list_expression = std::move(list_expr);
-            type = ExprType::INT;
+            type = nullptr;
             this->node_rule = NodeRule::PRIMARYACCESSEXPR;
         }
 
@@ -549,6 +537,7 @@ namespace node_types{
 
         PrimaryExpr(unique_ptr<ExprNode> inner){
             expr = std::move(inner);
+            type = nullptr;
             this->node_rule = NodeRule::PRIMARYEXPR;
         }
 
@@ -567,8 +556,9 @@ namespace node_types{
         bool bool_val;
 
         TrueFalseLiteral(bool v){
+            type = new BooleanType(v);
             bool_val = v;
-            type = ExprType::BOOL;
+            type->evaluated = true;
             this->node_rule = NodeRule::TRUEFALSELITERAL;
         }
 
@@ -585,10 +575,10 @@ namespace node_types{
     class NumLiteral : public ExprNode{
     public:
         int64_t int_val;
-
         NumLiteral(int64_t v){
+            type = new IntType(v);
             int_val = v;
-            type = ExprType::INT;
+            type->evaluated = true;
             this->node_rule = NodeRule::NUMLITERAL;
         }
 
@@ -608,7 +598,7 @@ namespace node_types{
 
         IdLiteral(string identifier){
             id = std::move(identifier);
-            type = ExprType::ID;
+            type = nullptr;
             this->node_rule = NodeRule::IDLITERAL;
         }
 
@@ -625,7 +615,7 @@ namespace node_types{
     class ThisExpr : public ExprNode{
     public:
         ThisExpr(){
-            type = ExprType::ID;
+            type = nullptr;
             this->node_rule = NodeRule::THISEXPR;
         }
 
@@ -644,8 +634,8 @@ namespace node_types{
         string class_id;
 
         NewObjExpr(string id){
+            type = new ClassType(id, {});
             class_id = std::move(id);
-            type = ExprType::ID;
             this->node_rule = NodeRule::NEWOBJEXPR;
         }
 
@@ -664,8 +654,8 @@ namespace node_types{
         unique_ptr<ExprNode> size_expr;
 
         NewArrayExpr(unique_ptr<ExprNode> size){
+            type = new IntArrayType(4);
             size_expr = std::move(size);
-            type = ExprType::INT_ARR;
             this->node_rule = NodeRule::NEWARRAYEXPR;
         }
 

@@ -37,4 +37,8 @@ struct RunningOptions{
  
     /** @brief Flag indicating whether the AST tree should be printed to a file.*/
     bool ast_output = false;
+
+    std::string tac_output_file_path = "";
+     
+    bool tac_output = false;
 };

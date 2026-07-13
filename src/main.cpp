@@ -20,17 +20,19 @@ int parse_argv(int argc, char** argv, CLI::App &cli_app, RunningOptions &run_opt
     std::string lexer_output_filename = "";
     std::string symbtable_output_filename = "";
     std::string ast_output_filename = "";
+    std::string tac_output_filename = "";
 
     cli_app.add_option("input", input_filename, ".java input file")
     ->required()
     ->check(CLI::ExistingFile);
 
     cli_app.add_option("-c", clean_output_filename, "Clean (''preprocessed'') output");
-    cli_app.add_option("-l", lexer_output_filename, "Lexer output");
+    cli_app.add_option("--lexer", lexer_output_filename, "Lexer output");
     cli_app.add_flag("--stop-on-first-error", run_opts.stop_on_first_error, "");
     cli_app.add_flag("--suggest", run_opts.suggest_corrections, "");
-    cli_app.add_option("-p", symbtable_output_filename, "");
-    cli_app.add_option("-t", ast_output_filename, "AST tree output");
+    cli_app.add_option("--parser", symbtable_output_filename, "");
+    cli_app.add_option("--ast", ast_output_filename, "AST tree output");
+    cli_app.add_option("--tac", tac_output_filename, "TAC output");
 
     try{cli_app.parse(argc, argv);}
     catch(CLI::ParseError){
@@ -54,6 +56,10 @@ int parse_argv(int argc, char** argv, CLI::App &cli_app, RunningOptions &run_opt
     if(ast_output_filename != ""){
         run_opts.ast_output_file_path = ast_output_filename;
         run_opts.ast_output = true;
+    }
+    if(tac_output_filename != ""){
+        run_opts.tac_output_file_path = tac_output_filename;
+        run_opts.tac_output = true;
     }
     
     

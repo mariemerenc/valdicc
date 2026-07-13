@@ -1,5 +1,6 @@
 #include "../headers/parser.h"
 #include "../headers/usefultools.h"
+#include <cstddef>
 #include <memory>
 #include <stdexcept>
 #include <limits.h>
@@ -75,7 +76,7 @@ void Parser::throw_error(const std::string& msg, ErrorPhase phase){
         }
 
         if(best_dist <= 2){
-            full_msg += ". Você quis dizer: '" + best_match + "'?";
+            full_msg += ". ☝️🤓 Você quis dizer: '" + best_match + "'?";
         }
     }
     throw runtime_error(full_msg);
@@ -106,7 +107,7 @@ AST Parser::parse(){
     AST tree(parse_Prog());
 
     if(lookahead < tokens.size() && peek().type != TokenType::END_OF_FILE){
-        throw_error("Presença de tokens após EOF.");
+        throw_error("👽🕵️‍♂️ — Presença de tokens após EOF.");
     }
     return tree;
 }
@@ -171,10 +172,10 @@ NodeVec Parser::parse_DefCl(){
             extends = true;
             extends_id = previous().lexeme;
         }
-
-        bool success = env.insert(class_id, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column);
+        Type* t = new ClassType(class_id, {});
+        bool success = env.insert(class_id, "class", SymbolKind::CLASS, env.get_scope(), tkn_class.line, tkn_class.column, t);
         if(!success){
-            throw_error("Classe já declarada: " + class_id, ErrorPhase::SEMANTIC);
+            throw_error("👥🧬 — Classe já declarada: " + class_id, ErrorPhase::SEMANTIC);
         }
 
         match(TokenType::PUNC_LBRACE);
@@ -204,10 +205,10 @@ NodeVec Parser::parse_DefVar() {
         match(TokenType::IDENTIFIER);
         Token tkn_id = previous();
         string id = tkn_id.lexeme;
-
-        bool success = env.insert(id, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+        Type* t = Type::str_to_real_type(type);
+        bool success = env.insert(id, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column, t);
         if(!success){
-            throw_error("Variável já declarada neste escopo: " + id, ErrorPhase::SEMANTIC);
+            throw_error("🧍🧍🧬 — Variável já declarada neste escopo: " + id, ErrorPhase::SEMANTIC);
         }
 
         match(TokenType::PUNC_SEMICOLON);
@@ -233,7 +234,7 @@ NodeVec Parser::parse_DefMet() {
 
         bool success = env.insert(id, type, SymbolKind::METHOD, env.get_scope(), tkn_met.line, tkn_met.column);
         if(!success){
-            throw_error("Método já declarado: " + id, ErrorPhase::SEMANTIC);
+            throw_error("🧍‍♀️🧍‍♀️🧬 — Método já declarado: " + id, ErrorPhase::SEMANTIC);
         }
 
         env.addTable("método " + id);  // tabela antes dos args para parâmetros e DefVar ficarem juntos
@@ -298,10 +299,10 @@ NodeVec Parser::parse_Args() {
     string type = parse_Type();
     match(TokenType::IDENTIFIER);
     Token tkn_id = previous();
-
-    bool success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+    Type* t = Type::str_to_real_type(type);
+    bool success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column, t);
     if(!success){
-        throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
+        throw_error("🧑‍🔬🧍‍♂️🧍‍♂️🧬 — Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
     }
     
     auto node = make_unique<node_types::VarDecl>(tkn_id.lexeme, type);
@@ -316,10 +317,10 @@ NodeVec Parser::parse_Args() {
         type = parse_Type();
         match(TokenType::IDENTIFIER);
         tkn_id = previous();
-
-        success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column);
+        t = Type::str_to_real_type(type);
+        success = env.insert(tkn_id.lexeme, type, SymbolKind::VARIABLE, env.get_scope(), tkn_id.line, tkn_id.column, t);
         if(!success){
-            throw_error("Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
+            throw_error("🧑‍🔬🧍🧍🧬 — Tentativa de inserção de parâmetro duplicado: " + tkn_id.lexeme, ErrorPhase::SEMANTIC);
         }
         
         auto node = make_unique<node_types::VarDecl>(tkn_id.lexeme, type);
@@ -656,11 +657,11 @@ ExprNodePtr Parser::parse_Pri_exp(){
         }
     }
     else{
-        throw_error("Esperava o começo de uma Exp.");
+        throw_error("🏁 — Esperava o começo de uma Exp.");
     }
     return nullptr;
 }
-
+ 
 vector<ExprNodePtr> Parser::parse_ListExp() {
     vector<ExprNodePtr> ret_vec;
     ret_vec.push_back(parse_Exp());

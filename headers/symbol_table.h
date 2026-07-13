@@ -57,6 +57,8 @@ class SymbolTable{
      */
     bool insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column);
 
+    bool insert(const std::string& name, const std::string& type, SymbolKind kind, int scope, int line, int column, Type* real_type);
+
     /**
      * @brief Looks a name up in this scope only.
      * @param name identifier to search for

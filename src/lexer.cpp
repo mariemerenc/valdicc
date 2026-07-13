@@ -42,7 +42,7 @@ void Lexer::handle_lexical_error(const string& invalid_lexeme){
                     ":\n";
 
     if(regex_match(invalid_lexeme, matches, invalid_id_pattern)){
-        full_msg += ("-> Identificador inválido: " +
+        full_msg += ("-> 🪪 — Identificador inválido: " +
                     invalid_lexeme + '\n' +
                     "-> REGRA: nomes de variáveis e métodos não podem começar com números!"
                     );
@@ -51,11 +51,11 @@ void Lexer::handle_lexical_error(const string& invalid_lexeme){
             regex num_prefix("^[0-9]+");
             string suggestion = regex_replace(invalid_lexeme, num_prefix, "");
 
-            full_msg += "\n-> Você quis dizer: '" + suggestion + "'?";
+            full_msg += "\n-> ☝️🤓 Você quis dizer: '" + suggestion + "'?";
         }
     }
     else{
-        full_msg += "-> Símbolo não reconhecido: " + invalid_lexeme;
+        full_msg += "-> 👽 — Símbolo não reconhecido: " + invalid_lexeme;
 
         if(m_running_opts.suggest_corrections){
             string best_match;
@@ -70,7 +70,7 @@ void Lexer::handle_lexical_error(const string& invalid_lexeme){
             }
 
             if(best_dist <= 1){
-                full_msg += "\n-> Você quis dizer: '" + best_match + "'?";
+                full_msg += "\n-> ☝️🤓 Você quis dizer: '" + best_match + "'?";
             }
             full_msg += '\n';
         }

@@ -1,0 +1,58 @@
+// operadores logicos heranca, instanciar classe com new dentro de classe
+
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(new PagamentoCartaoCredito().checar());
+    }
+}
+
+
+class PagamentoMensalidade{
+
+    boolean pagou;
+    boolean serasa;
+    int valor;
+
+    public int inicializar(int valorr) {
+        pagou = false;
+        valor = valorr;
+        return 0;
+    }
+
+}
+
+class PagamentoCartaoCredito extends PagamentoMensalidade{
+
+    int juros;
+    Cartao cartao;
+
+    public int checar () {
+        if (!pagou && !serasa){
+            juros = 0;
+        }
+        else {
+            valor = valor + juros;
+        }
+        return 0;
+    }
+
+    public int adicionarCartao(Cartao cartao2) {
+        cartao = cartao2;
+        return 0;
+    }
+
+}
+
+
+class Cartao {
+    int[] quatrodigitos;
+
+    public int setCodigo(int [] cod) {
+        quatrodigitos = cod;
+        return 0;
+    }
+
+    public int[] getCodigo() {
+        return quatrodigitos;
+    }
+}

@@ -1,0 +1,72 @@
+// operadores aritmeticos, if e while, relacao >
+
+class Principal {
+    public static void main(String[] args) {
+        System.out.println(new Calculadora().sub(20, 10));
+    }
+}
+
+class Calculadora {
+    int ult_resp;
+
+    public int sub(int a, int b) {
+        int temp;
+        temp = a - b;
+        ult_resp = temp;
+        return temp;
+    }
+}
+
+class TesteIfElse{
+    public int testeIfElse(){
+        int iff;
+        int elsee;
+
+        iff = 20;
+        elsee = 10;
+        
+        if(iff > elsee){
+            System.out.println(iff);
+        }
+        else{
+            System.out.println(elsee);
+        }
+        
+        return 1;
+    }
+}
+
+class TesteWhile{
+    public int testeWhile(){
+        int whilee;
+        int eitaa;
+        whilee = 5;
+        eitaa = 3;
+        whilee = whilee * eitaa;
+        
+        while(whilee > 3){
+            System.out.println(whilee);
+            whilee = whilee - 1;
+        }
+        
+        return 0;
+    }
+}
+
+class TesteIndexArray{
+    public int testeIndexArray() {
+        int[] array;
+        int a;
+
+        a = 10;
+        array = new int[10];
+        array[7] = a;
+
+        System.out.println(array.length);
+
+        return array[2];
+
+    }
+
+
+}
