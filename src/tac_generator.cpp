@@ -134,6 +134,9 @@ string TacGenerator::printTac() {
                 output += ("HALT main\n");
                 break;
             }
+            default: {
+                break;
+            }
 
 
         }
@@ -578,7 +581,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
                     node_types::IdLiteral* aaaaa = dynamic_cast<node_types::IdLiteral*>(n->lhs.get());
 
                     if (!aaaaa) {
-                        throw std::runtime_error("nao conseguimos acessar a o nome a qual o acesso se refere 1 (TAC)\n");
+                        throw std::runtime_error("🚧 — nao conseguimos acessar a o nome a qual o acesso se refere 1 (TAC)\n");
                         exit(1);
                     }
 
@@ -602,7 +605,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
 
                     node_types::IdLiteral* aaaaa = dynamic_cast<node_types::IdLiteral*>(n->lhs.get());
                     if (!aaaaa) {
-                        throw std::runtime_error("nao conseguimos acessar a o nome a qual o acesso se refere 2 (TAC)\n");
+                        throw std::runtime_error("🚧 — nao conseguimos acessar a o nome a qual o acesso se refere 2 (TAC)\n");
                         exit(1);
                     }
 
@@ -634,7 +637,7 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
                     auto aaaaa = dynamic_cast<ClassType*>(n->lhs->type);
 
                     if (!aaaaa) {
-                        throw std::runtime_error("nao conseguimos acessar a classe a qual o metodo se refere (TAC)\n");
+                        throw std::runtime_error("🚧 — nao conseguimos acessar a classe a qual o metodo se refere (TAC)\n");
                         exit(1);
                     }
 
@@ -669,7 +672,6 @@ std::list<quad> TacGenerator::generate(ASTNode* node){
         case ASTNode::NodeRule::THISEXPR: { // REVER
 
             std::list<quad> a = {}, b = {};
-            auto prim = dynamic_cast<node_types::ThisExpr*>(node);
 
             a.push_back(quad(oper::THIS, "eita", "", t + std::to_string(temp_var_counter++)));
             line_counter++;

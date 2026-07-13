@@ -85,6 +85,7 @@ void Core::run(){
             }
         }
         // string generated_code = CodeGenerator(tree.root(), parser.getEnv()).code;
+        cout << "COMPILOUUUUUUUUUUUUUUUUUUUUUUUUUUU 🍻🪩🎊🎊💥🎊🪩🍻💥🪩🎊🎊🪩🎉🪩🎉🍻🎊🍻🪩🎉🪩🎊🎉🥳🍻🥳🪩🎉🪩🎊🎊🎉🪩💥💥🍻🎉🪩🎊💥🎉🪩🪩🍻💥🍻🪩🎉💥🎊🪩🎉💥🎊💥🍻🪩🪩🎊🎉🪩🎉💥💥🍻\n";
     }
     catch(const exception& e){
         cerr << e.what() << '\n';
